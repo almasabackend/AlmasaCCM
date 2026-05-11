@@ -1,6 +1,7 @@
 import mysql from "mysql2/promise";
 
 const STATUS_VALUES = new Set(["subscribed", "unsubscribed", "invalid", "blocked"]);
+const COUNTRY_VALUES = new Set(["AE", "SA"]);
 
 export async function createStore() {
   if (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME) {
@@ -80,9 +81,29 @@ export class MySqlStore {
         INDEX idx_import_history_country_date (country, imported_at)
       )
     `);
+    await this.pool.execute(`
+      CREATE TABLE IF NOT EXISTS contact_groups (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        country ENUM('AE', 'SA') NOT NULL DEFAULT 'AE',
+        name VARCHAR(120) NOT NULL,
+        created_at DATETIME NOT NULL,
+        UNIQUE KEY uniq_contact_group_country_name (country, name)
+      )
+    `);
+    await this.pool.execute(`
+      CREATE TABLE IF NOT EXISTS contact_group_members (
+        group_id INT NOT NULL,
+        contact_id INT NOT NULL,
+        created_at DATETIME NOT NULL,
+        PRIMARY KEY (group_id, contact_id),
+        INDEX idx_group_members_contact (contact_id)
+      )
+    `);
   }
 
   async summary(country) {
+    const countryClause = isAllCountryCode(country) ? "" : "WHERE country = :country";
+    const params = isAllCountryCode(country) ? {} : { country };
     const [rows] = await this.pool.execute(
       `
       SELECT
@@ -95,11 +116,14 @@ export class MySqlStore {
         SUM(TRIM(COALESCE(company_name, '')) = '') missing_company,
         SUM(TRIM(COALESCE(contact_name, '')) = '') missing_contact_name
       FROM contacts
-      WHERE country = :country
+      ${countryClause}
       `,
-      { country }
+      params
     );
-    const [history] = await this.pool.execute("SELECT MAX(imported_at) last_import FROM import_history WHERE country = :country", { country });
+    const [history] = await this.pool.execute(
+      `SELECT MAX(imported_at) last_import FROM import_history ${countryClause}`,
+      params
+    );
     return normalizeSummary(rows[0], history[0]?.last_import);
   }
 
@@ -108,29 +132,76 @@ export class MySqlStore {
     return rows[0] || null;
   }
 
-  async listContacts({ country, search = "", status = "", missingCompany = false, missingName = false, limit = 1000 }) {
-    const clauses = ["country = :country"];
-    const params = { country, limit: Number(limit) };
+  async listContacts({ country, search = "", status = "", missingCompany = false, missingName = false, groupId = "", limit = 1000 }) {
+    const clauses = isAllCountryCode(country) ? [] : ["c.country = :country"];
+    const params = isAllCountryCode(country) ? { limit: Number(limit) } : { country, limit: Number(limit) };
     if (search.trim()) {
       params.search = `%${search.trim()}%`;
-      clauses.push("(phone_e164 LIKE :search OR contact_name LIKE :search OR company_name LIKE :search OR email LIKE :search OR status LIKE :search)");
+      clauses.push("(c.phone_e164 LIKE :search OR c.contact_name LIKE :search OR c.company_name LIKE :search OR c.email LIKE :search OR c.status LIKE :search)");
     }
     if (status) {
       params.status = status;
-      clauses.push("status = :status");
+      clauses.push("c.status = :status");
     }
-    if (missingCompany) clauses.push("TRIM(COALESCE(company_name, '')) = ''");
-    if (missingName) clauses.push("TRIM(COALESCE(contact_name, '')) = ''");
+    if (missingCompany) clauses.push("TRIM(COALESCE(c.company_name, '')) = ''");
+    if (missingName) clauses.push("TRIM(COALESCE(c.contact_name, '')) = ''");
+    if (groupId) {
+      params.groupId = Number(groupId);
+      clauses.push("gm_filter.group_id = :groupId");
+    }
+    const whereSql = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
     const [rows] = await this.pool.execute(
       `
-      SELECT * FROM contacts
-      WHERE ${clauses.join(" AND ")}
-      ORDER BY last_updated_at DESC, id DESC
+      SELECT c.*, GROUP_CONCAT(DISTINCT cg.name ORDER BY cg.name SEPARATOR ', ') groups
+      FROM contacts c
+      ${groupId ? "INNER JOIN contact_group_members gm_filter ON gm_filter.contact_id = c.id" : ""}
+      LEFT JOIN contact_group_members gm ON gm.contact_id = c.id
+      LEFT JOIN contact_groups cg ON cg.id = gm.group_id
+      ${whereSql}
+      GROUP BY c.id
+      ORDER BY c.last_updated_at DESC, c.id DESC
       LIMIT :limit
       `,
       params
     );
     return rows;
+  }
+
+  async listContactGroups(country) {
+    const countryClause = isAllCountryCode(country) ? "" : "WHERE g.country = :country";
+    const params = isAllCountryCode(country) ? {} : { country };
+    const [rows] = await this.pool.execute(
+      `
+      SELECT g.*, COUNT(gm.contact_id) contact_count
+      FROM contact_groups g
+      LEFT JOIN contact_group_members gm ON gm.group_id = g.id
+      ${countryClause}
+      GROUP BY g.id
+      ORDER BY g.name ASC
+      `,
+      params
+    );
+    return rows;
+  }
+
+  async createContactGroup(country, name) {
+    const cleanName = cleanOptional(name);
+    const cleanCountry = COUNTRY_VALUES.has(country) ? country : "AE";
+    if (!cleanName) return null;
+    await this.pool.execute(
+      "INSERT IGNORE INTO contact_groups (country, name, created_at) VALUES (:country, :name, :created_at)",
+      { country: cleanCountry, name: cleanName, created_at: sqlNow() }
+    );
+    const [rows] = await this.pool.execute("SELECT * FROM contact_groups WHERE country = :country AND name = :name LIMIT 1", { country: cleanCountry, name: cleanName });
+    return rows[0] || null;
+  }
+
+  async addContactToGroup(contactId, groupId) {
+    if (!groupId) return;
+    await this.pool.execute(
+      "INSERT IGNORE INTO contact_group_members (group_id, contact_id, created_at) VALUES (:groupId, :contactId, :created_at)",
+      { groupId: Number(groupId), contactId: Number(contactId), created_at: sqlNow() }
+    );
   }
 
   async upsertImportedContact(record, { updateExisting = false } = {}) {
@@ -201,14 +272,18 @@ export class MySqlStore {
     if (order === "oldest") orderSql = "first_added_at ASC, id ASC";
     if (order === "random") orderSql = "RAND()";
     const exportStatus = STATUS_VALUES.has(status) ? status : "subscribed";
+    const countryClause = isAllCountryCode(country) ? "" : "country = :country AND";
+    const params = isAllCountryCode(country)
+      ? { status: exportStatus, limit: capped }
+      : { country, status: exportStatus, limit: capped };
     const [rows] = await this.pool.execute(
       `
       SELECT * FROM contacts
-      WHERE country = :country AND status = :status
+      WHERE ${countryClause} status = :status
       ORDER BY ${orderSql}
       LIMIT :limit
       `,
-      { country, status: exportStatus, limit: capped }
+      params
     );
     return rows;
   }
@@ -229,7 +304,9 @@ export class MySqlStore {
   }
 
   async importHistory(country) {
-    const [rows] = await this.pool.execute("SELECT * FROM import_history WHERE country = :country ORDER BY imported_at DESC, id DESC LIMIT 200", { country });
+    const countryClause = isAllCountryCode(country) ? "" : "WHERE country = :country";
+    const params = isAllCountryCode(country) ? {} : { country };
+    const [rows] = await this.pool.execute(`SELECT * FROM import_history ${countryClause} ORDER BY imported_at DESC, id DESC LIMIT 200`, params);
     return rows;
   }
 }
@@ -240,13 +317,16 @@ export class MemoryStore {
     this.startedAt = new Date().toISOString();
     this.contacts = [];
     this.history = [];
+    this.groups = [];
+    this.groupMembers = [];
     this.nextId = 1;
     this.nextHistoryId = 1;
+    this.nextGroupId = 1;
   }
 
   async summary(country) {
-    const rows = this.contacts.filter((contact) => contact.country === country);
-    const last = this.history.filter((item) => item.country === country).map((item) => item.imported_at).sort().at(-1);
+    const rows = this.contacts.filter((contact) => isAllCountryCode(country) || contact.country === country);
+    const last = this.history.filter((item) => isAllCountryCode(country) || item.country === country).map((item) => item.imported_at).sort().at(-1);
     return normalizeSummary(
       {
         total_contacts: rows.length,
@@ -266,16 +346,53 @@ export class MemoryStore {
     return this.contacts.find((contact) => contact.phone_e164 === phone) || null;
   }
 
-  async listContacts({ country, search = "", status = "", missingCompany = false, missingName = false, limit = 1000 }) {
+  async listContacts({ country, search = "", status = "", missingCompany = false, missingName = false, groupId = "", limit = 1000 }) {
     const term = search.trim().toLowerCase();
     return this.contacts
-      .filter((contact) => contact.country === country)
+      .filter((contact) => isAllCountryCode(country) || contact.country === country)
       .filter((contact) => !status || contact.status === status)
       .filter((contact) => !missingCompany || !contact.company_name)
       .filter((contact) => !missingName || !contact.contact_name)
+      .filter((contact) => !groupId || this.groupMembers.some((member) => member.contact_id === contact.id && member.group_id === Number(groupId)))
+      .map((contact) => ({
+        ...contact,
+        groups: this.groupMembers
+          .filter((member) => member.contact_id === contact.id)
+          .map((member) => this.groups.find((group) => group.id === member.group_id)?.name)
+          .filter(Boolean)
+          .join(", ")
+      }))
       .filter((contact) => !term || ["phone_e164", "contact_name", "company_name", "email", "status"].some((key) => String(contact[key] || "").toLowerCase().includes(term)))
       .sort((a, b) => String(b.last_updated_at).localeCompare(String(a.last_updated_at)))
       .slice(0, Number(limit));
+  }
+
+  async listContactGroups(country) {
+    return this.groups
+      .filter((group) => isAllCountryCode(country) || group.country === country)
+      .map((group) => ({
+        ...group,
+        contact_count: this.groupMembers.filter((member) => member.group_id === group.id).length
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async createContactGroup(country, name) {
+    const cleanName = cleanOptional(name);
+    const cleanCountry = COUNTRY_VALUES.has(country) ? country : "AE";
+    if (!cleanName) return null;
+    const existing = this.groups.find((group) => group.country === cleanCountry && group.name.toLowerCase() === cleanName.toLowerCase());
+    if (existing) return existing;
+    const group = { id: this.nextGroupId++, country: cleanCountry, name: cleanName, created_at: sqlNow() };
+    this.groups.push(group);
+    return group;
+  }
+
+  async addContactToGroup(contactId, groupId) {
+    const cleanContactId = Number(contactId);
+    const cleanGroupId = Number(groupId);
+    if (!cleanGroupId || this.groupMembers.some((member) => member.contact_id === cleanContactId && member.group_id === cleanGroupId)) return;
+    this.groupMembers.push({ contact_id: cleanContactId, group_id: cleanGroupId, created_at: sqlNow() });
   }
 
   async upsertImportedContact(record, { updateExisting = false } = {}) {
@@ -329,7 +446,7 @@ export class MemoryStore {
   async contactsForExport({ country, limit, order, status = "subscribed" }) {
     const capped = Math.max(1, Math.min(Number(limit) || 1000, 1000));
     const exportStatus = STATUS_VALUES.has(status) ? status : "subscribed";
-    const rows = this.contacts.filter((contact) => contact.country === country && contact.status === exportStatus);
+    const rows = this.contacts.filter((contact) => (isAllCountryCode(country) || contact.country === country) && contact.status === exportStatus);
     if (order === "oldest") rows.sort((a, b) => String(a.first_added_at).localeCompare(String(b.first_added_at)));
     else if (order === "random") rows.sort(() => Math.random() - 0.5);
     else rows.sort((a, b) => String(b.first_added_at).localeCompare(String(a.first_added_at)));
@@ -341,7 +458,7 @@ export class MemoryStore {
   }
 
   async importHistory(country) {
-    return this.history.filter((item) => item.country === country);
+    return this.history.filter((item) => isAllCountryCode(country) || item.country === country);
   }
 }
 
@@ -392,6 +509,10 @@ function cleanOptional(value) {
 
 function sqlNow() {
   return new Date().toISOString().slice(0, 19).replace("T", " ");
+}
+
+function isAllCountryCode(country) {
+  return String(country || "").toUpperCase() === "ALL";
 }
 
 function friendlyDatabaseError(error) {

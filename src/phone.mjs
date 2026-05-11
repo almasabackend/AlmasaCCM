@@ -82,6 +82,7 @@ export function normalizePhone(raw, countryCode = "AE") {
 
 export function countryCodeFromCallingCode(callingCode) {
   for (const country of Object.values(COUNTRIES)) {
+    if (country.combined) continue;
     if (country.callingCode === String(callingCode)) return country.code;
   }
   return null;
@@ -90,4 +91,3 @@ export function countryCodeFromCallingCode(callingCode) {
 export function excelSafePhone(phone) {
   return `="${phone}"`;
 }
-

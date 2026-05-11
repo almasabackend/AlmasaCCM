@@ -4,7 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
-import { COUNTRIES, countryFromCode, countryTabs } from "./countries.mjs";
+import { COUNTRIES, countryFromCode, countryTabs, isAllCountry } from "./countries.mjs";
 import { buildCampaignExport } from "./exportService.mjs";
 import { buildFilteredUpload } from "./filterService.mjs";
 import { runDiagnostics } from "./diagnostics.mjs";
@@ -69,7 +69,13 @@ export function createRouter(store) {
     }
     req.country = countryFromCode(code);
     res.locals.currentCountry = req.country;
-    next();
+    res.locals.isCombinedCountry = isAllCountry(req.country.code);
+    store.listContactGroups(req.country.code)
+      .then((groups) => {
+        res.locals.contactGroups = groups;
+        next();
+      })
+      .catch(next);
   });
 
   router.get("/:country/dashboard", async (req, res, next) => {
@@ -89,10 +95,12 @@ export function createRouter(store) {
         status: req.query.status || "",
         missingCompany: req.query.missingCompany === "1",
         missingName: req.query.missingName === "1",
+        groupId: req.query.group || "",
         limit: 1000
       };
+      const groups = res.locals.contactGroups || [];
       const contacts = await store.listContacts(filters);
-      res.render("contacts", { contacts, filters, groupTitle: contactGroupTitle(filters), message: req.query.message || "" });
+      res.render("contacts", { contacts, groups, filters, groupTitle: contactGroupTitle(filters, groups), message: req.query.message || "" });
     } catch (error) {
       next(error);
     }
@@ -100,14 +108,15 @@ export function createRouter(store) {
 
   router.post("/:country/contacts/manual", async (req, res, next) => {
     try {
-      const normalized = normalizePhone(req.body.phone, req.country.code);
+      const targetCountry = isAllCountry(req.country.code) ? "AE" : req.country.code;
+      const normalized = normalizePhone(req.body.phone, targetCountry);
       if (!normalized.valid || !normalized.e164) {
         res.redirect(`/${req.country.code}/contacts?message=${encodeURIComponent("Invalid phone number: " + normalized.reason)}`);
         return;
       }
       await store.upsertImportedContact(
         {
-          country: req.country.code,
+          country: targetCountry,
           phone_e164: normalized.e164,
           phone_display: normalized.display,
           raw_phone: normalized.raw,
@@ -126,6 +135,17 @@ export function createRouter(store) {
     }
   });
 
+  router.post("/:country/contacts/groups", async (req, res, next) => {
+    try {
+      const targetCountry = isAllCountry(req.country.code) ? req.body.group_country : req.country.code;
+      const group = await store.createContactGroup(targetCountry, req.body.group_name);
+      const message = group ? `Group "${group.name}" saved.` : "Enter a group name.";
+      res.redirect(`/${req.country.code}/contacts?message=${encodeURIComponent(message)}`);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post("/:country/contacts/:id", async (req, res, next) => {
     try {
       const fields = {
@@ -139,6 +159,7 @@ export function createRouter(store) {
         fields.unsubscribed_at = new Date().toISOString().slice(0, 19).replace("T", " ");
       }
       await store.updateContact(req.params.id, fields);
+      if (req.body.group_id) await store.addContactToGroup(req.params.id, req.body.group_id);
       res.redirect(`/${req.country.code}/contacts?message=${encodeURIComponent("Contact updated.")}`);
     } catch (error) {
       next(error);
@@ -155,11 +176,19 @@ export function createRouter(store) {
   });
 
   router.get("/:country/import", (req, res) => {
+    if (isAllCountry(req.country.code)) {
+      res.redirect("/AE/import");
+      return;
+    }
     res.render("import", { result: null });
   });
 
   router.post("/:country/import", upload.array("files", 10), async (req, res, next) => {
     try {
+      if (isAllCountry(req.country.code)) {
+        res.redirect("/AE/import");
+        return;
+      }
       if (!req.files?.length) {
         res.render("import", { result: { error: "Choose at least one CSV or Excel file." } });
         return;
@@ -177,6 +206,10 @@ export function createRouter(store) {
   });
 
   router.get("/:country/filter", (req, res) => {
+    if (isAllCountry(req.country.code)) {
+      res.redirect("/AE/filter");
+      return;
+    }
     res.render("filter", { error: "", result: null });
   });
 
@@ -193,6 +226,10 @@ export function createRouter(store) {
 
   router.post("/:country/filter", upload.array("files", 10), async (req, res, next) => {
     try {
+      if (isAllCountry(req.country.code)) {
+        res.redirect("/AE/filter");
+        return;
+      }
       if (!req.files?.length) {
         res.render("filter", { error: "Choose at least one CSV or Excel file.", result: null });
         return;
@@ -288,7 +325,11 @@ function cleanupFilterDownloads() {
   }
 }
 
-function contactGroupTitle(filters) {
+function contactGroupTitle(filters, groups = []) {
+  if (filters.groupId) {
+    const group = groups.find((item) => String(item.id) === String(filters.groupId));
+    return group ? `Group: ${group.name}` : "Contact group";
+  }
   if (filters.status) return `${capitalize(filters.status)} contacts`;
   if (filters.missingCompany) return "Contacts missing company";
   if (filters.missingName) return "Contacts missing person name";

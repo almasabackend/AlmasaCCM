@@ -108,6 +108,70 @@ test("exports unsubscribe list only", async () => {
   assert.doesNotMatch(csv, /\+971501234567/);
 });
 
+test("all country view combines UAE and Saudi contacts", async () => {
+  const store = new MemoryStore();
+  await store.upsertImportedContact({
+    country: "AE",
+    phone_e164: "+971501111111",
+    phone_display: "+971 50 111 1111",
+    raw_phone: "0501111111",
+    company_name: "UAE Co",
+    contact_name: "UAE Person",
+    email: "",
+    source_file: "uae.xlsx",
+    source_sheet: "",
+    incoming_status: "subscribed"
+  });
+  await store.upsertImportedContact({
+    country: "SA",
+    phone_e164: "+966551111111",
+    phone_display: "+966 55 111 1111",
+    raw_phone: "0551111111",
+    company_name: "KSA Co",
+    contact_name: "KSA Person",
+    email: "",
+    source_file: "ksa.xlsx",
+    source_sheet: "",
+    incoming_status: "subscribed"
+  });
+
+  const summary = await store.summary("ALL");
+  const exportFile = await buildCampaignExport({ store, country: "ALL", limit: 1000, format: "plain_csv" });
+  const csv = exportFile.body.toString("utf8");
+
+  assert.equal(summary.total_contacts, 2);
+  assert.equal(summary.subscribed, 2);
+  assert.match(csv, /\+971501111111/);
+  assert.match(csv, /\+966551111111/);
+});
+
+test("custom contact groups can be created assigned and filtered", async () => {
+  const store = new MemoryStore();
+  await store.upsertImportedContact({
+    country: "AE",
+    phone_e164: "+971501111111",
+    phone_display: "+971 50 111 1111",
+    raw_phone: "0501111111",
+    company_name: "Group Co",
+    contact_name: "Group Person",
+    email: "",
+    source_file: "group.xlsx",
+    source_sheet: "",
+    incoming_status: "subscribed"
+  });
+  const [contact] = await store.listContacts({ country: "AE" });
+  const group = await store.createContactGroup("AE", "Expo Leads");
+  await store.addContactToGroup(contact.id, group.id);
+
+  const groups = await store.listContactGroups("AE");
+  const groupedContacts = await store.listContacts({ country: "AE", groupId: group.id });
+
+  assert.equal(groups[0].name, "Expo Leads");
+  assert.equal(groups[0].contact_count, 1);
+  assert.equal(groupedContacts.length, 1);
+  assert.equal(groupedContacts[0].groups, "Expo Leads");
+});
+
 test("filters uploaded list against global unsubscribed contacts without importing", async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wcg-filter-"));
   const filePath = path.join(tempDir, "fresh-list.xlsx");

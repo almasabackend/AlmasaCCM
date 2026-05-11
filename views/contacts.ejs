@@ -9,6 +9,37 @@
   <% if (message) { %><div class="alert"><%= message %></div><% } %>
 
   <section class="panel">
+    <div class="section-title">
+      <div>
+        <h2>Contact Groups</h2>
+        <p>Create custom lists for projects, campaigns, regions, or sales follow-up.</p>
+      </div>
+    </div>
+    <form method="post" action="/<%= currentCountry.code %>/contacts/groups" class="form-grid">
+      <label>Group name<input name="group_name" placeholder="e.g. May campaign leads" required></label>
+      <% if (currentCountry.combined) { %>
+        <label>Country
+          <select name="group_country">
+            <option value="AE">UAE</option>
+            <option value="SA">Saudi Arabia</option>
+          </select>
+        </label>
+      <% } %>
+      <button type="submit">Create group</button>
+    </form>
+    <% if (groups.length) { %>
+      <div class="chip-row">
+        <a class="chip <%= !filters.groupId ? "active" : "" %>" href="/<%= currentCountry.code %>/contacts">View all</a>
+        <% groups.forEach((group) => { %>
+          <a class="chip <%= String(filters.groupId) === String(group.id) ? "active" : "" %>" href="/<%= currentCountry.code %>/contacts?group=<%= group.id %>">
+            <%= group.name %> <span><%= group.contact_count %></span>
+          </a>
+        <% }) %>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="panel">
     <h2>Manual add</h2>
     <form method="post" action="/<%= currentCountry.code %>/contacts/manual" class="form-grid">
       <label>WhatsApp number<input name="phone" placeholder="+971..." required></label>
@@ -34,6 +65,12 @@
           <option value="<%= status %>" <%= filters.status === status ? "selected" : "" %>><%= status %></option>
         <% }) %>
       </select>
+      <select name="group">
+        <option value="">All groups</option>
+        <% groups.forEach((group) => { %>
+          <option value="<%= group.id %>" <%= String(filters.groupId) === String(group.id) ? "selected" : "" %>><%= group.name %></option>
+        <% }) %>
+      </select>
       <label class="checkbox"><input type="checkbox" name="missingCompany" value="1" <%= filters.missingCompany ? "checked" : "" %>> Missing company</label>
       <label class="checkbox"><input type="checkbox" name="missingName" value="1" <%= filters.missingName ? "checked" : "" %>> Missing person</label>
       <button type="submit">Search</button>
@@ -42,14 +79,16 @@
 
   <section class="panel">
     <div class="table-wrap">
-      <table>
+      <table class="contact-table">
         <thead>
           <tr>
             <th>WhatsApp number</th>
+            <% if (currentCountry.combined) { %><th>Country</th><% } %>
             <th>Company</th>
             <th>Person</th>
             <th>Email</th>
             <th>Status</th>
+            <th>Groups</th>
             <th>Updated</th>
             <th>Edit</th>
           </tr>
@@ -58,10 +97,12 @@
           <% contacts.forEach((contact) => { %>
             <tr>
               <td><%= contact.phone_e164 %></td>
+              <% if (currentCountry.combined) { %><td><%= contact.country %></td><% } %>
               <td><%= contact.company_name || "" %></td>
               <td><%= contact.contact_name || "" %></td>
               <td><%= contact.email || "" %></td>
               <td><span class="status <%= contact.status === "subscribed" ? "green" : contact.status === "invalid" ? "grey" : "red" %>"><%= contact.status %></span></td>
+              <td><%= contact.groups || "" %></td>
               <td><%= contact.last_updated_at || "" %></td>
               <td>
                 <details>
@@ -70,6 +111,12 @@
                     <input name="company_name" value="<%= contact.company_name || "" %>" placeholder="Company">
                     <input name="contact_name" value="<%= contact.contact_name || "" %>" placeholder="Person">
                     <input name="email" value="<%= contact.email || "" %>" placeholder="Email">
+                    <select name="group_id">
+                      <option value="">Add to group</option>
+                      <% groups.filter((group) => currentCountry.combined || group.country === contact.country).forEach((group) => { %>
+                        <option value="<%= group.id %>"><%= group.name %></option>
+                      <% }) %>
+                    </select>
                     <select name="status">
                       <% ["subscribed", "unsubscribed", "blocked", "invalid"].forEach((status) => { %>
                         <option value="<%= status %>" <%= contact.status === status ? "selected" : "" %>><%= status %></option>

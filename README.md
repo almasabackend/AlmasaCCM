@@ -5,6 +5,7 @@ Hostinger-ready Node.js web app for managing WhatsApp promotional contact lists 
 This web version supports:
 
 - UAE and Saudi Arabia management tabs.
+- Combined **All** tab for viewing/exporting UAE and Saudi contacts together.
 - Company name, person name, WhatsApp number, and email fields.
 - Optional fields: if a file has name/company/email, they are saved; if not, the contact still imports.
 - CSV/XLSX import with all Excel sheets read.
@@ -16,6 +17,7 @@ This web version supports:
 - Filter My List tool: upload a new CSV/XLSX file and download a clean version with globally unsubscribed/blocked numbers removed, without importing the file into the database.
 - Drag-and-drop upload zones with upload/progress feedback for import and filtering.
 - Contacts submenu for viewing all contacts or status/missing-info groups.
+- Custom contact groups for tracking campaign lists while keeping the View All contact list.
 - Campaign export capped at 1,000 subscribed contacts.
 - Unsubscribe-only export mode for downloading suppressed opt-out contacts.
 - Phone-only export for WhatsApp upload and full contact export for team use.

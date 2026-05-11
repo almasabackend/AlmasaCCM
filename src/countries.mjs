@@ -1,4 +1,13 @@
 export const COUNTRIES = {
+  ALL: {
+    code: "ALL",
+    name: "All",
+    flag: "🌐",
+    region: "AE",
+    callingCode: "971",
+    localMobilePrefix: "05",
+    combined: true
+  },
   AE: {
     code: "AE",
     name: "UAE",
@@ -23,4 +32,8 @@ export function countryFromCode(code) {
 
 export function countryTabs() {
   return Object.values(COUNTRIES);
+}
+
+export function isAllCountry(country) {
+  return String(country || "").toUpperCase() === "ALL";
 }

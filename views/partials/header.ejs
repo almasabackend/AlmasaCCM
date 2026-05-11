@@ -35,9 +35,20 @@
             <a href="/<%= currentCountry.code %>/contacts?status=invalid">Invalid</a>
             <a href="/<%= currentCountry.code %>/contacts?missingCompany=1">Missing company</a>
             <a href="/<%= currentCountry.code %>/contacts?missingName=1">Missing person</a>
+            <% if (typeof contactGroups !== "undefined" && contactGroups.length) { %>
+              <span class="nav-label">Groups</span>
+              <% contactGroups.forEach((group) => { %>
+                <a href="/<%= currentCountry.code %>/contacts?group=<%= group.id %>"><%= group.name %> <small><%= group.contact_count %></small></a>
+              <% }) %>
+            <% } %>
           </details>
-          <a href="/<%= currentCountry.code %>/import">Import</a>
-          <a href="/<%= currentCountry.code %>/filter">Filter My List</a>
+          <% if (!currentCountry.combined) { %>
+            <a href="/<%= currentCountry.code %>/import">Import</a>
+            <a href="/<%= currentCountry.code %>/filter">Filter My List</a>
+          <% } else { %>
+            <a href="/AE/import">Import</a>
+            <a href="/AE/filter">Filter My List</a>
+          <% } %>
           <a href="/<%= currentCountry.code %>/export">Export</a>
           <a href="/<%= currentCountry.code %>/history">Import History</a>
           <a href="/<%= currentCountry.code %>/settings">Settings</a>
