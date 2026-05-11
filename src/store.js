@@ -22,6 +22,7 @@ export async function createStore() {
 export class MySqlStore {
   constructor() {
     this.kind = "mysql";
+    this.startedAt = new Date().toISOString();
     this.pool = mysql.createPool({
       host: process.env.DB_HOST,
       port: Number(process.env.DB_PORT || 3306),
@@ -234,6 +235,7 @@ export class MySqlStore {
 export class MemoryStore {
   constructor() {
     this.kind = "memory";
+    this.startedAt = new Date().toISOString();
     this.contacts = [];
     this.history = [];
     this.nextId = 1;

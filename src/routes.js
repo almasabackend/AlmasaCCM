@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { COUNTRIES, countryFromCode, countryTabs } from "./countries.js";
 import { buildCampaignExport } from "./exportService.js";
+import { runDiagnostics } from "./diagnostics.js";
 import { importContactFiles } from "./importService.js";
 import { normalizePhone } from "./phone.js";
 
@@ -24,6 +25,18 @@ export function createRouter(store) {
   });
 
   router.get("/login", (req, res) => res.render("login", { error: "" }));
+  router.get("/healthz", async (_req, res) => {
+    const diagnostics = await runDiagnostics(store);
+    res.status(diagnostics.database.attempted && !diagnostics.database.ok ? 503 : 200).json(diagnostics);
+  });
+  router.get("/diagnostics", async (_req, res, next) => {
+    try {
+      const diagnostics = await runDiagnostics(store);
+      res.render("diagnostics", { diagnostics, currentCountry: countryFromCode("AE") });
+    } catch (error) {
+      next(error);
+    }
+  });
   router.post("/login", (req, res) => {
     if (!process.env.ADMIN_PASSWORD || req.body.password === process.env.ADMIN_PASSWORD) {
       req.session.authenticated = true;
@@ -203,4 +216,3 @@ export function createRouter(store) {
 
   return router;
 }
-

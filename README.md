@@ -85,6 +85,22 @@ npm start
 
 The app creates the required SQL tables automatically on startup.
 
+## Deployment Diagnostics
+
+If Hostinger shows `503 Service Unavailable`, open:
+
+```text
+https://your-domain/diagnostics
+```
+
+or:
+
+```text
+https://your-domain/healthz
+```
+
+The diagnostics page shows the exact MySQL connection error code/message without exposing the database password.
+
 ## Deploy Options
 
 Hostinger gives two choices:
@@ -97,4 +113,3 @@ Hostinger gives two choices:
 ```bash
 npm test
 ```
-

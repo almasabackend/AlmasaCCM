@@ -1,0 +1,46 @@
+<%- include("partials/header") %>
+  <header class="page-header">
+    <div>
+      <h1>Deployment Diagnostics</h1>
+      <p>Use this page to see why Hostinger cannot connect the app to MySQL.</p>
+    </div>
+  </header>
+
+  <section class="panel">
+    <h2>App</h2>
+    <div class="summary-grid">
+      <span>App running <strong><%= diagnostics.app.ok ? "Yes" : "No" %></strong></span>
+      <span>Store mode <strong><%= diagnostics.app.store_kind %></strong></span>
+      <span>Started at <strong><%= diagnostics.app.started_at || "Unknown" %></strong></span>
+    </div>
+    <% if (diagnostics.app.database_startup_error) { %>
+      <div class="alert danger"><%= diagnostics.app.database_startup_error %></div>
+    <% } %>
+  </section>
+
+  <section class="panel">
+    <h2>Database Test</h2>
+    <div class="summary-grid">
+      <span>Attempted <strong><%= diagnostics.database.attempted ? "Yes" : "No" %></strong></span>
+      <span>Connected <strong><%= diagnostics.database.ok ? "Yes" : "No" %></strong></span>
+      <span>Error code <strong><%= diagnostics.database.code || "None" %></strong></span>
+      <span>SQL state <strong><%= diagnostics.database.sql_state || "None" %></strong></span>
+    </div>
+    <div class="<%= diagnostics.database.ok ? "alert" : "alert danger" %>"><%= diagnostics.database.message %></div>
+  </section>
+
+  <section class="panel">
+    <h2>Environment Snapshot</h2>
+    <table>
+      <tbody>
+        <% Object.entries(diagnostics.environment).forEach(([key, value]) => { %>
+          <tr>
+            <th><%= key %></th>
+            <td><%= value === true ? "Yes" : value === false ? "No" : value %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+<%- include("partials/footer") %>
+
