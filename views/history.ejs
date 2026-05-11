@@ -1,0 +1,47 @@
+<%- include("partials/header") %>
+  <header class="page-header">
+    <div>
+      <h1><%= currentCountry.name %> Import History</h1>
+      <p>Recent imports and suppression updates.</p>
+    </div>
+  </header>
+
+  <section class="panel">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>File</th>
+            <th>Rows</th>
+            <th>Numbers</th>
+            <th>New</th>
+            <th>Existing</th>
+            <th>Duplicates</th>
+            <th>Suppressed</th>
+            <th>Imported unsubscribed</th>
+            <th>Invalid</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% history.forEach((item) => { %>
+            <tr>
+              <td><%= item.imported_at %></td>
+              <td><%= item.file_name %></td>
+              <td><%= item.total_rows %></td>
+              <td><%= item.numbers_found %></td>
+              <td><%= item.new_added %></td>
+              <td><%= item.already_existing %></td>
+              <td><%= item.duplicates %></td>
+              <td><%= item.unsubscribed_blocked %></td>
+              <td><%= item.imported_unsubscribed %></td>
+              <td><%= item.invalid_numbers %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% if (!history.length) { %><p class="muted">No import history yet.</p><% } %>
+  </section>
+<%- include("partials/footer") %>
+

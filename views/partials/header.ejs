@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WhatsApp Contact Guard</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">W</span>
+        <div>
+          <strong>WhatsApp Contact Guard</strong>
+          <small><%= storeKind === "mysql" ? "Hostinger SQL" : "Local demo memory" %></small>
+        </div>
+      </div>
+
+      <% if (typeof currentCountry !== "undefined") { %>
+        <div class="country-tabs">
+          <% countries.forEach((country) => { %>
+            <a class="<%= currentCountry.code === country.code ? "active" : "" %>" href="/<%= country.code %>/dashboard"><%= country.name %></a>
+          <% }) %>
+        </div>
+
+        <nav class="nav">
+          <a href="/<%= currentCountry.code %>/dashboard">Dashboard</a>
+          <a href="/<%= currentCountry.code %>/contacts">Contacts</a>
+          <a href="/<%= currentCountry.code %>/import">Import</a>
+          <a href="/<%= currentCountry.code %>/export">Export</a>
+          <a href="/<%= currentCountry.code %>/history">Import History</a>
+          <a href="/<%= currentCountry.code %>/settings">Settings</a>
+        </nav>
+      <% } %>
+
+      <% if (adminEnabled) { %>
+        <form action="/logout" method="post" class="logout">
+          <button type="submit">Log out</button>
+        </form>
+      <% } %>
+    </aside>
+    <main class="main">
+

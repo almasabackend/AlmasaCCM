@@ -1,0 +1,47 @@
+<%- include("partials/header") %>
+  <header class="page-header">
+    <div>
+      <h1>Export <%= currentCountry.name %> Campaign List</h1>
+      <p>Only subscribed contacts are exported. Unsubscribed, blocked, and invalid contacts are always excluded.</p>
+    </div>
+  </header>
+
+  <section class="panel">
+    <div class="summary-grid">
+      <span>Subscribed available <strong><%= summary.subscribed %></strong></span>
+      <span>Unsubscribed skipped <strong><%= summary.unsubscribed %></strong></span>
+      <span>Blocked skipped <strong><%= summary.blocked %></strong></span>
+      <span>Invalid skipped <strong><%= summary.invalid %></strong></span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <form method="post" class="form-grid">
+      <label>Maximum contacts
+        <input type="number" name="limit" min="1" max="1000" value="1000">
+      </label>
+      <label>Order
+        <select name="order">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="random">Random selection</option>
+        </select>
+      </label>
+      <label>Mode
+        <select name="mode">
+          <option value="phone_only">Phone only</option>
+          <option value="full">Full contact export</option>
+        </select>
+      </label>
+      <label>Format
+        <select name="format">
+          <option value="excel_safe_csv">Excel-safe CSV</option>
+          <option value="plain_csv">Plain CSV</option>
+          <option value="xlsx">XLSX</option>
+        </select>
+      </label>
+      <button type="submit">Download campaign export</button>
+    </form>
+  </section>
+<%- include("partials/footer") %>
+

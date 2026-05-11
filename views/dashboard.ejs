@@ -1,0 +1,27 @@
+<%- include("partials/header") %>
+  <header class="page-header">
+    <div>
+      <h1><%= currentCountry.name %> Dashboard</h1>
+      <p>Country-specific contact and unsubscribe suppression overview.</p>
+    </div>
+    <a class="button" href="/<%= currentCountry.code %>/import">Import contacts</a>
+  </header>
+
+  <% if (storeKind !== "mysql") { %>
+    <div class="alert warning">No Hostinger database credentials are set, so this is running with temporary demo memory. Add `.env` database values before production use.</div>
+  <% } %>
+
+  <section class="metric-grid">
+    <article class="metric"><span>Total contacts</span><strong><%= summary.total_contacts %></strong></article>
+    <article class="metric green"><span>Subscribed</span><strong><%= summary.subscribed %></strong></article>
+    <article class="metric red"><span>Unsubscribed</span><strong><%= summary.unsubscribed %></strong></article>
+    <article class="metric red"><span>Blocked</span><strong><%= summary.blocked %></strong></article>
+    <article class="metric grey"><span>Invalid</span><strong><%= summary.invalid %></strong></article>
+    <article class="metric"><span>With company</span><strong><%= summary.with_company %></strong></article>
+    <article class="metric"><span>Missing company</span><strong><%= summary.missing_company %></strong></article>
+    <article class="metric"><span>Missing person name</span><strong><%= summary.missing_contact_name %></strong></article>
+    <article class="metric green"><span>Available for next export</span><strong><%= summary.available_for_next_export %></strong></article>
+    <article class="metric"><span>Last import</span><strong class="small-value"><%= summary.last_import %></strong></article>
+  </section>
+<%- include("partials/footer") %>
+

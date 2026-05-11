@@ -1,0 +1,22 @@
+<%- include("partials/header") %>
+  <header class="page-header">
+    <div>
+      <h1>Settings</h1>
+      <p>Deployment and database information.</p>
+    </div>
+  </header>
+
+  <section class="panel">
+    <h2>Database mode</h2>
+    <p><strong><%= storeKind === "mysql" ? "MySQL/MariaDB" : "Temporary memory" %></strong></p>
+    <% if (storeKind !== "mysql") { %>
+      <div class="alert warning">Set `DB_HOST`, `DB_USER`, `DB_PASSWORD`, and `DB_NAME` in Hostinger environment variables before using this app for real contacts.</div>
+    <% } %>
+  </section>
+
+  <section class="panel">
+    <h2>Countries enabled</h2>
+    <p>UAE and Saudi Arabia are enabled now. More countries can be added by extending the country configuration.</p>
+  </section>
+<%- include("partials/footer") %>
+

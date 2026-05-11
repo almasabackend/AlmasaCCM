@@ -1,0 +1,97 @@
+<%- include("partials/header") %>
+  <header class="page-header">
+    <div>
+      <h1><%= currentCountry.name %> Contacts</h1>
+      <p>Manage company, person, WhatsApp number, email, and subscription status.</p>
+    </div>
+  </header>
+
+  <% if (message) { %><div class="alert"><%= message %></div><% } %>
+
+  <section class="panel">
+    <h2>Manual add</h2>
+    <form method="post" action="/<%= currentCountry.code %>/contacts/manual" class="form-grid">
+      <label>WhatsApp number<input name="phone" placeholder="+971..." required></label>
+      <label>Company name<input name="company_name"></label>
+      <label>Person name<input name="contact_name"></label>
+      <label>Email<input type="email" name="email"></label>
+      <label>Status
+        <select name="status">
+          <option value="subscribed">Subscribed</option>
+          <option value="unsubscribed">Unsubscribed</option>
+        </select>
+      </label>
+      <button type="submit">Save contact</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <form method="get" class="filters">
+      <input name="search" value="<%= filters.search %>" placeholder="Search phone, company, person, email, status">
+      <select name="status">
+        <option value="">All statuses</option>
+        <% ["subscribed", "unsubscribed", "blocked", "invalid"].forEach((status) => { %>
+          <option value="<%= status %>" <%= filters.status === status ? "selected" : "" %>><%= status %></option>
+        <% }) %>
+      </select>
+      <label class="checkbox"><input type="checkbox" name="missingCompany" value="1" <%= filters.missingCompany ? "checked" : "" %>> Missing company</label>
+      <label class="checkbox"><input type="checkbox" name="missingName" value="1" <%= filters.missingName ? "checked" : "" %>> Missing person</label>
+      <button type="submit">Search</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>WhatsApp number</th>
+            <th>Company</th>
+            <th>Person</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Updated</th>
+            <th>Edit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% contacts.forEach((contact) => { %>
+            <tr>
+              <td><%= contact.phone_e164 %></td>
+              <td><%= contact.company_name || "" %></td>
+              <td><%= contact.contact_name || "" %></td>
+              <td><%= contact.email || "" %></td>
+              <td><span class="status <%= contact.status === "subscribed" ? "green" : contact.status === "invalid" ? "grey" : "red" %>"><%= contact.status %></span></td>
+              <td><%= contact.last_updated_at || "" %></td>
+              <td>
+                <details>
+                  <summary>Edit</summary>
+                  <form method="post" action="/<%= currentCountry.code %>/contacts/<%= contact.id %>" class="edit-form">
+                    <input name="company_name" value="<%= contact.company_name || "" %>" placeholder="Company">
+                    <input name="contact_name" value="<%= contact.contact_name || "" %>" placeholder="Person">
+                    <input name="email" value="<%= contact.email || "" %>" placeholder="Email">
+                    <select name="status">
+                      <% ["subscribed", "unsubscribed", "blocked", "invalid"].forEach((status) => { %>
+                        <option value="<%= status %>" <%= contact.status === status ? "selected" : "" %>><%= status %></option>
+                      <% }) %>
+                    </select>
+                    <% if (contact.status === "unsubscribed") { %>
+                      <p class="alert danger">Only re-subscribe this contact if they clearly opted in again.</p>
+                    <% } %>
+                    <textarea name="notes" placeholder="Notes"><%= contact.notes || "" %></textarea>
+                    <button type="submit">Update</button>
+                  </form>
+                  <form method="post" action="/<%= currentCountry.code %>/contacts/<%= contact.id %>/delete" onsubmit="return confirm('Delete this contact?')" class="delete-form">
+                    <button class="danger-button" type="submit">Delete</button>
+                  </form>
+                </details>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% if (!contacts.length) { %><p class="muted">No contacts found.</p><% } %>
+  </section>
+<%- include("partials/footer") %>
+

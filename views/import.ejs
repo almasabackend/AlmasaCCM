@@ -1,0 +1,79 @@
+<%- include("partials/header") %>
+  <header class="page-header">
+    <div>
+      <h1>Import <%= currentCountry.name %> Contacts</h1>
+      <p>Upload CSV/XLSX files. Rows that mention unsubscribe, opt out, stop, remove, or do not contact become suppressed.</p>
+    </div>
+  </header>
+
+  <section class="panel">
+    <form method="post" enctype="multipart/form-data">
+      <div class="form-grid">
+        <label>
+          CSV/XLSX files
+          <input type="file" name="files" accept=".csv,.xlsx,.xlsm,.xltx,.xltm" multiple required>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" name="updateExisting" value="1">
+          Update existing contact details from imported file
+        </label>
+      </div>
+      <button type="submit">Import and filter contacts</button>
+    </form>
+  </section>
+
+  <% if (result?.error) { %>
+    <div class="alert danger"><%= result.error %></div>
+  <% } %>
+
+  <% if (result?.summary) { %>
+    <section class="panel">
+      <h2>Import summary</h2>
+      <div class="summary-grid">
+        <span>Rows scanned <strong><%= result.summary.total_rows %></strong></span>
+        <span>Numbers found <strong><%= result.summary.numbers_found %></strong></span>
+        <span>New subscribed <strong><%= result.summary.new_added %></strong></span>
+        <span>Existing <strong><%= result.summary.already_existing %></strong></span>
+        <span>Updated <strong><%= result.summary.existing_updated %></strong></span>
+        <span>Imported unsubscribed <strong><%= result.summary.imported_unsubscribed %></strong></span>
+        <span>Kept suppressed <strong><%= result.summary.unsubscribed_blocked %></strong></span>
+        <span>Duplicates <strong><%= result.summary.duplicates %></strong></span>
+        <span>Invalid <strong><%= result.summary.invalid_numbers %></strong></span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Import results</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Country</th>
+              <th>WhatsApp number</th>
+              <th>Company</th>
+              <th>Person</th>
+              <th>Email</th>
+              <th>Detected status</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% result.results.slice(0, 300).forEach((row) => { %>
+              <tr>
+                <td><%= row.country || currentCountry.code %></td>
+                <td><%= row.phone_e164 || row.raw_phone %></td>
+                <td><%= row.company_name %></td>
+                <td><%= row.contact_name %></td>
+                <td><%= row.email %></td>
+                <td><%= row.detected_status %></td>
+                <td><span class="status <%= row.result.toLowerCase().includes("unsub") || row.result.toLowerCase().includes("suppress") ? "red" : row.result.toLowerCase().includes("invalid") ? "grey" : "green" %>"><%= row.result %></span></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% if (result.results.length > 300) { %><p class="muted">Showing first 300 rows.</p><% } %>
+    </section>
+  <% } %>
+<%- include("partials/footer") %>
+

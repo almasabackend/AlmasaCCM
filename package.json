@@ -1,0 +1,27 @@
+{
+  "name": "whatsapp-contact-guard-web",
+  "version": "1.0.0",
+  "description": "Country-aware WhatsApp contact and suppression list manager for Hostinger Node.js and MySQL/MariaDB hosting.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "NODE_ENV=development node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "csv-parse": "^6.1.0",
+    "exceljs": "^4.4.0",
+    "express-session": "^1.18.2",
+    "libphonenumber-js": "^1.12.30",
+    "multer": "^2.0.2",
+    "mysql2": "^3.15.3"
+  },
+  "devDependencies": {}
+}
