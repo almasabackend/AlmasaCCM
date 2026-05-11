@@ -57,6 +57,14 @@
     const summary = result.summary;
     const removedTotal = Number(summary.removed_total || 0);
   %>
+    <section class="success-card">
+      <span class="success-check" aria-hidden="true">✓</span>
+      <div>
+        <h2>Filter completed</h2>
+        <p>Your clean contact file is ready to download.</p>
+      </div>
+    </section>
+
     <section class="panel">
       <h2>Filter Results</h2>
       <% if (removedTotal > 0) { %>

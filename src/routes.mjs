@@ -107,12 +107,16 @@ export function createRouter(store) {
     }
   });
 
+  router.get("/:country/contacts/new", (req, res) => {
+    res.render("manual_contact", { error: "" });
+  });
+
   router.post("/:country/contacts/manual", async (req, res, next) => {
     try {
-      const targetCountry = isAllCountry(req.country.code) ? "AE" : req.country.code;
+      const targetCountry = isAllCountry(req.country.code) ? req.body.country || "AE" : req.country.code;
       const normalized = normalizePhone(req.body.phone, targetCountry);
       if (!normalized.valid || !normalized.e164) {
-        res.redirect(`/${req.country.code}/contacts?message=${encodeURIComponent("Invalid phone number: " + normalized.reason)}`);
+        res.status(400).render("manual_contact", { error: "Invalid phone number: " + normalized.reason });
         return;
       }
       await store.upsertImportedContact(

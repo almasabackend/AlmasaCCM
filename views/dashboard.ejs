@@ -26,10 +26,6 @@
     <article class="metric red"><span>Unsubscribed</span><strong><%= summary.unsubscribed %></strong></article>
     <article class="metric red"><span>Blocked</span><strong><%= summary.blocked %></strong></article>
     <article class="metric grey"><span>Invalid</span><strong><%= summary.invalid %></strong></article>
-    <article class="metric"><span>With company</span><strong><%= summary.with_company %></strong></article>
-    <article class="metric"><span>Missing company</span><strong><%= summary.missing_company %></strong></article>
-    <article class="metric"><span>Missing person name</span><strong><%= summary.missing_contact_name %></strong></article>
-    <article class="metric green"><span>Available for next export</span><strong><%= summary.available_for_next_export %></strong></article>
     <article class="metric"><span>Last import</span><strong class="small-value"><%= summary.last_import %></strong></article>
   </section>
 <%- include("partials/footer") %>

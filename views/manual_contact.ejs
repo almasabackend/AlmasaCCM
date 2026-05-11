@@ -1,0 +1,38 @@
+<%- include("partials/header") %>
+  <header class="page-header">
+    <div>
+      <h1><span class="page-flag"><%= currentCountry.flag %></span>Manual Add Contact</h1>
+      <p>Add one contact after checking their WhatsApp number and subscription status.</p>
+    </div>
+    <div class="button-row">
+      <a class="secondary-button" href="/<%= currentCountry.code %>/contacts">Back to contacts</a>
+    </div>
+  </header>
+
+  <% if (error) { %><div class="alert danger"><%= error %></div><% } %>
+
+  <section class="panel manual-add-panel">
+    <h2>Contact details</h2>
+    <form method="post" action="/<%= currentCountry.code %>/contacts/manual" class="form-grid">
+      <% if (currentCountry.combined) { %>
+        <label>Country
+          <select name="country">
+            <option value="AE">UAE</option>
+            <option value="SA">Saudi Arabia</option>
+          </select>
+        </label>
+      <% } %>
+      <label>WhatsApp number<input name="phone" placeholder="+971..." required></label>
+      <label>Company name<input name="company_name"></label>
+      <label>Person name<input name="contact_name"></label>
+      <label>Email<input type="email" name="email"></label>
+      <label>Status
+        <select name="status">
+          <option value="subscribed">Subscribed</option>
+          <option value="unsubscribed">Unsubscribed</option>
+        </select>
+      </label>
+      <button type="submit">Save contact</button>
+    </form>
+  </section>
+<%- include("partials/footer") %>

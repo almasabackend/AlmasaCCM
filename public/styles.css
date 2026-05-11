@@ -46,6 +46,29 @@ body {
   }
 }
 
+@keyframes drop-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(22, 131, 79, 0.22);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(22, 131, 79, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 131, 79, 0);
+  }
+}
+
+@keyframes check-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 button,
 .button,
 input,
@@ -338,6 +361,10 @@ button:disabled {
   margin-bottom: 14px;
 }
 
+.compact-title {
+  align-items: center;
+}
+
 .chip-row {
   display: flex;
   flex-wrap: wrap;
@@ -371,7 +398,7 @@ button:disabled {
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 14px;
 }
 
@@ -476,6 +503,8 @@ textarea {
 }
 
 .drop-zone {
+  position: relative;
+  overflow: hidden;
   min-height: 132px;
   display: grid;
   align-content: center;
@@ -486,14 +515,39 @@ textarea {
   padding: 18px;
   background: #f8fafc;
   cursor: pointer;
-  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.drop-zone::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  pointer-events: none;
+  transition: border-color 180ms ease, opacity 180ms ease;
+  opacity: 0;
 }
 
 .drop-zone:hover,
-.drop-zone.drag-over {
+.drop-zone.drag-over,
+.drop-zone.file-hover {
   border-color: var(--green);
   background: var(--green-bg);
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.006);
+  box-shadow: 0 12px 28px rgba(22, 131, 79, 0.14);
+}
+
+.drop-zone.drag-over,
+.drop-zone.file-hover {
+  animation: drop-pulse 900ms ease infinite;
+}
+
+.drop-zone:hover::after,
+.drop-zone.drag-over::after,
+.drop-zone.file-hover::after {
+  border-color: rgba(22, 131, 79, 0.38);
+  opacity: 1;
 }
 
 .drop-zone input[type="file"] {
@@ -554,6 +608,49 @@ textarea {
 
 .progress-panel {
   border-color: #bad2ed;
+}
+
+.success-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid #b7e2cb;
+  border-radius: 8px;
+  background: var(--green-bg);
+  color: var(--green);
+  margin-bottom: 16px;
+  animation: rise-in 220ms ease both;
+}
+
+.success-card h2 {
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.success-card p {
+  margin: 0;
+}
+
+.success-check {
+  width: 38px;
+  height: 38px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--green);
+  color: #fff;
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 900;
+  animation: check-pop 220ms ease both;
+}
+
+.success-check.small {
+  width: 28px;
+  height: 28px;
+  font-size: 17px;
 }
 
 .progress-header {

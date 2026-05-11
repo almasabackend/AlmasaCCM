@@ -4,6 +4,9 @@
       <h1><span class="page-flag"><%= currentCountry.flag %></span><%= currentCountry.name %> Contacts</h1>
       <p><%= groupTitle %>. Manage company, person, WhatsApp number, email, and subscription status.</p>
     </div>
+    <div class="button-row">
+      <a class="button" href="/<%= currentCountry.code %>/contacts/new">Manual Add</a>
+    </div>
   </header>
 
   <% if (message) { %><div class="alert"><%= message %></div><% } %>
@@ -40,23 +43,13 @@
   </section>
 
   <section class="panel">
-    <h2>Manual add</h2>
-    <form method="post" action="/<%= currentCountry.code %>/contacts/manual" class="form-grid">
-      <label>WhatsApp number<input name="phone" placeholder="+971..." required></label>
-      <label>Company name<input name="company_name"></label>
-      <label>Person name<input name="contact_name"></label>
-      <label>Email<input type="email" name="email"></label>
-      <label>Status
-        <select name="status">
-          <option value="subscribed">Subscribed</option>
-          <option value="unsubscribed">Unsubscribed</option>
-        </select>
-      </label>
-      <button type="submit">Save contact</button>
-    </form>
-  </section>
-
-  <section class="panel">
+    <div class="section-title compact-title">
+      <div>
+        <h2>My Contacts Filter</h2>
+        <p>Search and filter the saved contact database.</p>
+      </div>
+      <span class="success-check small" aria-hidden="true">✓</span>
+    </div>
     <form method="get" class="filters">
       <input name="search" value="<%= filters.search %>" placeholder="Search phone, company, person, email, status">
       <select name="status">

@@ -110,6 +110,14 @@
   <% } %>
 
   <% if (result?.summary) { %>
+    <section class="success-card">
+      <span class="success-check" aria-hidden="true">✓</span>
+      <div>
+        <h2>Upload confirmed</h2>
+        <p>The main database was updated successfully.</p>
+      </div>
+    </section>
+
     <section class="panel">
       <h2>Import summary</h2>
       <% if (result.snapshot) { %>

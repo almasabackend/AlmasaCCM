@@ -15,19 +15,28 @@ function setupDropZones() {
     };
 
     input.addEventListener("change", syncLabel);
-    zone.addEventListener("dragover", (event) => {
+    const activate = (event) => {
       event.preventDefault();
-      zone.classList.add("drag-over");
+      if (hasFiles(event)) zone.classList.add("drag-over", "file-hover");
+    };
+    const deactivate = () => zone.classList.remove("drag-over", "file-hover");
+    zone.addEventListener("dragenter", activate);
+    zone.addEventListener("dragover", activate);
+    zone.addEventListener("dragleave", (event) => {
+      if (!zone.contains(event.relatedTarget)) deactivate();
     });
-    zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
     zone.addEventListener("drop", (event) => {
       event.preventDefault();
-      zone.classList.remove("drag-over");
+      deactivate();
       if (!event.dataTransfer?.files?.length) return;
       input.files = event.dataTransfer.files;
       syncLabel();
     });
   });
+}
+
+function hasFiles(event) {
+  return Array.from(event.dataTransfer?.types || []).includes("Files");
 }
 
 function setupUploadProgressForms() {
@@ -86,6 +95,7 @@ function submitWithProgress(form) {
   xhr.addEventListener("load", () => {
     clearInterval(processingTimer);
     setProgress(100, "Done.");
+    progress?.classList.add("upload-complete");
     document.open();
     document.write(xhr.responseText);
     document.close();
