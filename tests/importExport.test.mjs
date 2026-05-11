@@ -144,6 +144,7 @@ test("filters uploaded list against global unsubscribed contacts without importi
 
   const csv = filtered.body.toString("utf8");
   assert.equal(filtered.summary.kept, 1);
+  assert.equal(filtered.summary.removed_total, 1);
   assert.equal(filtered.summary.removed_suppressed, 1);
   assert.doesNotMatch(csv, /\+971552605247/);
   assert.match(csv, /\+971501234567/);
@@ -181,6 +182,7 @@ test("filter removes a whole row if any phone in that row is suppressed", async 
 
   const csv = filtered.body.toString("utf8");
   assert.equal(filtered.summary.kept, 0);
+  assert.equal(filtered.summary.removed_total, 1);
   assert.equal(filtered.summary.removed_suppressed, 1);
   assert.doesNotMatch(csv, /Mixed Row/);
   assert.doesNotMatch(csv, /\+971501234567/);

@@ -78,6 +78,7 @@ export async function buildFilteredUpload({ files, country, store, format = "xls
     await safeUnlink(file.path);
   }
 
+  summary.removed_total = summary.removed_suppressed + summary.duplicates + summary.invalid_numbers + summary.rows_without_phone;
   return buildDownload({ summary, keptRows, removedRows, format });
 }
 
@@ -160,6 +161,7 @@ function emptySummary(fileName) {
     total_rows: 0,
     numbers_found: 0,
     kept: 0,
+    removed_total: 0,
     removed_suppressed: 0,
     duplicates: 0,
     invalid_numbers: 0,

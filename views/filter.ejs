@@ -11,7 +11,7 @@
   <% } %>
 
   <section class="panel">
-    <form method="post" enctype="multipart/form-data" class="form-grid">
+    <form id="filter-form" method="post" enctype="multipart/form-data" class="form-grid">
       <label>
         CSV/XLSX files
         <input type="file" name="files" accept=".csv,.xlsx,.xlsm,.xltx,.xltm" multiple required>
@@ -34,6 +34,53 @@
     </form>
   </section>
 
+  <section id="filter-progress" class="panel progress-panel" hidden aria-live="polite">
+    <div class="progress-header">
+      <div>
+        <h2>Checking Uploaded List</h2>
+        <p id="progress-message">Uploading file and preparing phone number scan.</p>
+      </div>
+      <strong id="progress-percent">0%</strong>
+    </div>
+    <div class="progress-track"><span id="progress-bar"></span></div>
+    <div class="progress-steps">
+      <span class="active">Upload</span>
+      <span>Detect phones</span>
+      <span>Check suppression</span>
+      <span>Build file</span>
+    </div>
+  </section>
+
+  <% if (result?.summary) { 
+    const summary = result.summary;
+    const removedTotal = Number(summary.removed_total || 0);
+  %>
+    <section class="panel">
+      <h2>Filter Results</h2>
+      <% if (removedTotal > 0) { %>
+        <div class="alert danger">
+          Removed <strong><%= removedTotal %></strong> row(s) from this list. Suppressed/unsubscribed numbers removed: <strong><%= summary.removed_suppressed %></strong>.
+        </div>
+      <% } else { %>
+        <div class="alert">No numbers were removed. This list is clean against the current global suppression database.</div>
+      <% } %>
+      <div class="summary-grid">
+        <span>Total rows <strong><%= summary.total_rows %></strong></span>
+        <span>Numbers found <strong><%= summary.numbers_found %></strong></span>
+        <span>Kept in clean file <strong><%= summary.kept %></strong></span>
+        <span>Removed total <strong><%= removedTotal %></strong></span>
+        <span>Suppressed removed <strong><%= summary.removed_suppressed %></strong></span>
+        <span>Duplicates removed <strong><%= summary.duplicates %></strong></span>
+        <span>Invalid removed <strong><%= summary.invalid_numbers %></strong></span>
+        <span>No phone removed <strong><%= summary.rows_without_phone %></strong></span>
+      </div>
+      <div class="button-row result-actions">
+        <a class="button" href="<%= result.downloadUrl %>">Download filtered file</a>
+        <span class="muted"><%= result.filename %></span>
+      </div>
+    </section>
+  <% } %>
+
   <section class="panel">
     <h2>What This Does</h2>
     <div class="summary-grid">
@@ -44,4 +91,32 @@
       <span>Does not import <strong>No DB change</strong></span>
     </div>
   </section>
+  <script>
+    const form = document.getElementById("filter-form");
+    const progress = document.getElementById("filter-progress");
+    const bar = document.getElementById("progress-bar");
+    const percent = document.getElementById("progress-percent");
+    const message = document.getElementById("progress-message");
+    const steps = [...document.querySelectorAll(".progress-steps span")];
+    const messages = [
+      "Uploading file and preparing phone number scan.",
+      "Detecting phone columns and normalizing numbers.",
+      "Checking against unsubscribed and blocked contacts.",
+      "Building your clean filtered file."
+    ];
+
+    form?.addEventListener("submit", () => {
+      progress.hidden = false;
+      let value = 0;
+      const timer = setInterval(() => {
+        value = Math.min(value + (value < 50 ? 7 : 3), 92);
+        const stepIndex = Math.min(Math.floor(value / 25), steps.length - 1);
+        steps.forEach((step, index) => step.classList.toggle("active", index <= stepIndex));
+        message.textContent = messages[stepIndex];
+        bar.style.width = `${value}%`;
+        percent.textContent = `${value}%`;
+        if (value >= 92) clearInterval(timer);
+      }, 450);
+    });
+  </script>
 <%- include("partials/footer") %>

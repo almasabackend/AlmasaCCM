@@ -23,7 +23,7 @@ body {
   margin: 0;
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 280px 1fr;
   background: var(--page);
   color: var(--ink);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -48,15 +48,15 @@ textarea {
 }
 
 .brand {
-  display: flex;
-  gap: 12px;
-  align-items: center;
+  display: grid;
+  gap: 10px;
+  align-items: start;
   margin-bottom: 24px;
 }
 
 .brand-logo {
-  width: 96px;
-  max-height: 38px;
+  width: 138px;
+  max-height: 44px;
   object-fit: contain;
   background: #fff;
   border-radius: 7px;
@@ -66,6 +66,10 @@ textarea {
 .brand strong,
 .brand small {
   display: block;
+}
+
+.brand strong {
+  line-height: 1.2;
 }
 
 .brand small {
@@ -313,6 +317,55 @@ textarea {
   color: var(--ink);
   font-size: 22px;
   margin-top: 4px;
+}
+
+.progress-panel {
+  border-color: #bad2ed;
+}
+
+.progress-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.progress-track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5ecf4;
+  margin: 18px 0 12px;
+}
+
+.progress-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--green);
+  border-radius: inherit;
+  transition: width 300ms ease;
+}
+
+.progress-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.progress-steps span {
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.progress-steps span.active {
+  color: var(--green);
+}
+
+.result-actions {
+  align-items: center;
+  margin-top: 16px;
 }
 
 .table-wrap {

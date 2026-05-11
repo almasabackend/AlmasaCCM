@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import path from "node:path";
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 import { COUNTRIES, countryFromCode, countryTabs } from "./countries.mjs";
@@ -14,6 +15,7 @@ import { authenticateUser, authConfigured } from "./auth.mjs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const upload = multer({ dest: path.join(__dirname, "..", "uploads") });
+const filterDownloads = new Map();
 
 export function createRouter(store) {
   const router = express.Router();
@@ -175,13 +177,24 @@ export function createRouter(store) {
   });
 
   router.get("/:country/filter", (req, res) => {
-    res.render("filter", { error: "" });
+    res.render("filter", { error: "", result: null });
+  });
+
+  router.get("/:country/filter/download/:token", (req, res) => {
+    const download = filterDownloads.get(req.params.token);
+    if (!download || download.country !== req.country.code) {
+      res.status(404).send("Filtered file expired. Please run the filter again.");
+      return;
+    }
+    res.setHeader("Content-Type", download.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${download.filename}"`);
+    res.send(download.body);
   });
 
   router.post("/:country/filter", upload.array("files", 10), async (req, res, next) => {
     try {
       if (!req.files?.length) {
-        res.render("filter", { error: "Choose at least one CSV or Excel file." });
+        res.render("filter", { error: "Choose at least one CSV or Excel file.", result: null });
         return;
       }
       const filtered = await buildFilteredUpload({
@@ -191,9 +204,15 @@ export function createRouter(store) {
         format: req.body.format,
         phoneFormat: req.body.phoneFormat
       });
-      res.setHeader("Content-Type", filtered.contentType);
-      res.setHeader("Content-Disposition", `attachment; filename="${filtered.filename}"`);
-      res.send(filtered.body);
+      const token = rememberFilterDownload(req.country.code, filtered);
+      res.render("filter", {
+        error: "",
+        result: {
+          summary: filtered.summary,
+          filename: filtered.filename,
+          downloadUrl: `/${req.country.code}/filter/download/${token}`
+        }
+      });
     } catch (error) {
       next(error);
     }
@@ -246,4 +265,25 @@ export function createRouter(store) {
   });
 
   return router;
+}
+
+function rememberFilterDownload(country, filtered) {
+  const token = crypto.randomBytes(18).toString("hex");
+  filterDownloads.set(token, {
+    country,
+    filename: filtered.filename,
+    contentType: filtered.contentType,
+    body: filtered.body,
+    createdAt: Date.now()
+  });
+  cleanupFilterDownloads();
+  return token;
+}
+
+function cleanupFilterDownloads() {
+  const maxAgeMs = 30 * 60 * 1000;
+  const now = Date.now();
+  for (const [token, item] of filterDownloads.entries()) {
+    if (now - item.createdAt > maxAgeMs) filterDownloads.delete(token);
+  }
 }
