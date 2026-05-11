@@ -14,6 +14,14 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = Number(process.env.PORT || 3000);
 
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught exception during app runtime:", error);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled promise rejection during app runtime:", reason);
+});
+
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.urlencoded({ extended: true }));
@@ -33,9 +41,9 @@ app.use(
 );
 
 const store = await createStore();
+console.log(`Store initialized in ${store.kind} mode`);
 app.use("/", createRouter(store));
 
 app.listen(port, () => {
   console.log(`WhatsApp Contact Guard web app running on http://localhost:${port}`);
 });
-

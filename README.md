@@ -83,6 +83,12 @@ NODE_ENV=production
 npm start
 ```
 
+If Hostinger asks for an entry file, use:
+
+```text
+app.js
+```
+
 The app creates the required SQL tables automatically on startup.
 
 ## Deployment Diagnostics
