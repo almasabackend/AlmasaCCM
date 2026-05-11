@@ -116,6 +116,12 @@ textarea {
   margin-top: 28px;
 }
 
+.signed-in {
+  display: block;
+  color: #aab7c4;
+  margin: 0 0 8px 12px;
+}
+
 .main {
   padding: 28px;
   min-width: 0;
@@ -447,4 +453,3 @@ pre {
     flex-direction: column;
   }
 }
-

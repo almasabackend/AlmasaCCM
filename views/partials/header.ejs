@@ -36,6 +36,9 @@
 
       <% if (adminEnabled) { %>
         <form action="/logout" method="post" class="logout">
+          <% if (currentUser) { %>
+            <small class="signed-in">Signed in as <%= currentUser.name %></small>
+          <% } %>
           <button type="submit">Log out</button>
         </form>
       <% } %>

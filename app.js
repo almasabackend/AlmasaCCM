@@ -111,6 +111,12 @@ function safeEnvironmentSnapshot() {
     db_user: process.env.DB_USER || "",
     db_password_set: Boolean(process.env.DB_PASSWORD),
     admin_password_set: Boolean(process.env.ADMIN_PASSWORD),
+    udaraka_password_set: Boolean(process.env.UDARAKA_PASSWORD),
+    shuaib_password_set: Boolean(process.env.SHUAIB_PASSWORD),
+    allowed_login_users: [
+      `udaraka@almasauae.com: ${process.env.UDARAKA_PASSWORD || process.env.ADMIN_PASSWORD ? "password set" : "password missing"}`,
+      `shuaib.m@almasauae.com: ${process.env.SHUAIB_PASSWORD || process.env.ADMIN_PASSWORD ? "password set" : "password missing"}`
+    ].join(", "),
     session_secret_set: Boolean(process.env.SESSION_SECRET)
   };
 }

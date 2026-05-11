@@ -1,4 +1,5 @@
 import mysql from "mysql2/promise";
+import { publicUserList } from "./auth.mjs";
 
 export function safeEnvironmentSnapshot() {
   return {
@@ -10,6 +11,9 @@ export function safeEnvironmentSnapshot() {
     db_user: process.env.DB_USER || "",
     db_password_set: Boolean(process.env.DB_PASSWORD),
     admin_password_set: Boolean(process.env.ADMIN_PASSWORD),
+    udaraka_password_set: Boolean(process.env.UDARAKA_PASSWORD),
+    shuaib_password_set: Boolean(process.env.SHUAIB_PASSWORD),
+    allowed_login_users: publicUserList().map((user) => `${user.email}: ${user.password_configured ? "password set" : "password missing"}`).join(", "),
     session_secret_set: Boolean(process.env.SESSION_SECRET)
   };
 }
@@ -64,4 +68,3 @@ export async function runDiagnostics(store) {
 
   return result;
 }
-

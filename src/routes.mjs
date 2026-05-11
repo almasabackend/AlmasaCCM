@@ -8,6 +8,7 @@ import { buildCampaignExport } from "./exportService.mjs";
 import { runDiagnostics } from "./diagnostics.mjs";
 import { importContactFiles } from "./importService.mjs";
 import { normalizePhone } from "./phone.mjs";
+import { authenticateUser, authConfigured } from "./auth.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,12 +20,13 @@ export function createRouter(store) {
   router.use((req, res, next) => {
     res.locals.countries = countryTabs();
     res.locals.storeKind = store.kind;
-    res.locals.adminEnabled = Boolean(process.env.ADMIN_PASSWORD);
+    res.locals.adminEnabled = authConfigured();
+    res.locals.currentUser = req.session.user || null;
     res.locals.path = req.path;
     next();
   });
 
-  router.get("/login", (req, res) => res.render("login", { error: "" }));
+  router.get("/login", (req, res) => res.render("login", { error: "", email: "" }));
   router.get("/healthz", async (_req, res) => {
     const diagnostics = await runDiagnostics(store);
     res.status(diagnostics.database.attempted && !diagnostics.database.ok ? 503 : 200).json(diagnostics);
@@ -38,17 +40,19 @@ export function createRouter(store) {
     }
   });
   router.post("/login", (req, res) => {
-    if (!process.env.ADMIN_PASSWORD || req.body.password === process.env.ADMIN_PASSWORD) {
+    const user = authenticateUser(req.body.email, req.body.password);
+    if (user) {
       req.session.authenticated = true;
+      req.session.user = user;
       res.redirect("/");
       return;
     }
-    res.status(401).render("login", { error: "Wrong password." });
+    res.status(401).render("login", { error: "Wrong email or password.", email: req.body.email || "" });
   });
   router.post("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 
   router.use((req, res, next) => {
-    if (!process.env.ADMIN_PASSWORD || req.session.authenticated) return next();
+    if (!authConfigured() || req.session.authenticated) return next();
     res.redirect("/login");
   });
 

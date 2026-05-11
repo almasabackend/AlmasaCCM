@@ -71,7 +71,8 @@ DB_PORT=3306
 DB_USER=your-db-user
 DB_PASSWORD=your-db-password
 DB_NAME=your-db-name
-ADMIN_PASSWORD=your-secure-admin-password
+UDARAKA_PASSWORD=your-secure-udaraka-password
+SHUAIB_PASSWORD=your-secure-shuaib-password
 SESSION_SECRET=a-long-random-secret
 NODE_ENV=production
 ```
