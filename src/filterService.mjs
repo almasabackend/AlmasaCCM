@@ -27,18 +27,20 @@ export async function buildFilteredUpload({ files, country, store, format = "xls
           continue;
         }
 
+        const rowPhones = [];
+        let removeWholeRow = null;
         for (const candidate of candidates) {
           summary.numbers_found += 1;
           const normalized = normalizePhone(candidate, country);
           if (!normalized.valid || !normalized.e164) {
             summary.invalid_numbers += 1;
-            removedRows.push(reportRow({ row, file, sheetName, index, rawPhone: candidate, result: "Invalid number", reason: normalized.reason }));
+            removeWholeRow ||= reportRow({ row, file, sheetName, index, rawPhone: candidate, result: "Invalid number", reason: normalized.reason });
             continue;
           }
 
           if (seen.has(normalized.e164)) {
             summary.duplicates += 1;
-            removedRows.push(reportRow({ row, file, sheetName, index, rawPhone: candidate, phone: normalized.e164, result: "Duplicate in uploaded file" }));
+            removeWholeRow ||= reportRow({ row, file, sheetName, index, rawPhone: candidate, phone: normalized.e164, result: "Duplicate in uploaded file" });
             continue;
           }
           seen.add(normalized.e164);
@@ -46,7 +48,7 @@ export async function buildFilteredUpload({ files, country, store, format = "xls
           const existing = await store.findContactByPhone(normalized.e164);
           if (existing && ["unsubscribed", "blocked"].includes(existing.status)) {
             summary.removed_suppressed += 1;
-            removedRows.push(reportRow({
+            removeWholeRow ||= reportRow({
               row,
               file,
               sheetName,
@@ -55,10 +57,19 @@ export async function buildFilteredUpload({ files, country, store, format = "xls
               phone: normalized.e164,
               result: existing.status === "blocked" ? "Blocked in global database" : "Unsubscribed in global database",
               reason: "Skipped from filtered list"
-            }));
+            });
             continue;
           }
 
+          rowPhones.push(normalized);
+        }
+
+        if (removeWholeRow) {
+          removedRows.push(removeWholeRow);
+          continue;
+        }
+
+        for (const normalized of rowPhones) {
           summary.kept += 1;
           keptRows.push(cleanRow({ row, file, sheetName, normalized, phoneFormat }));
         }
