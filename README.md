@@ -89,6 +89,8 @@ If Hostinger asks for an entry file, use:
 app.js
 ```
 
+If the Hostinger preset is already configured for `server.js`, that file is also present and loads the same app.
+
 The app creates the required SQL tables automatically on startup.
 
 ## Deployment Diagnostics
