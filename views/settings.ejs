@@ -8,12 +8,12 @@
 
   <section class="panel">
     <h2>Database mode</h2>
-    <p><strong><%= storeKind === "mysql" ? "MySQL/MariaDB" : storeKind === "memory-db-error" ? "Temporary memory because database connection failed" : "Temporary memory" %></strong></p>
+    <p><strong><%= storeKind === "mysql" ? "MySQL/MariaDB" : storeKind === "memory-db-error" || storeKind === "memory-startup-error" ? "Temporary memory because startup/database connection failed" : "Temporary memory" %></strong></p>
     <% if (storeKind === "memory") { %>
       <div class="alert warning">Set `DB_HOST`, `DB_USER`, `DB_PASSWORD`, and `DB_NAME` in Hostinger environment variables before using this app for real contacts.</div>
     <% } %>
-    <% if (storeKind === "memory-db-error") { %>
-      <div class="alert danger">Database connection failed on startup. Recheck the Hostinger database hostname, username, password, and database name, then restart the app.</div>
+    <% if (storeKind === "memory-db-error" || storeKind === "memory-startup-error") { %>
+      <div class="alert danger">Startup or database connection failed. Recheck the Hostinger runtime logs, database hostname, username, password, and database name, then restart the app.</div>
     <% } %>
   </section>
 

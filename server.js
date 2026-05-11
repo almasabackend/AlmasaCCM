@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createRouter } from "./src/routes.js";
-import { createStore } from "./src/store.js";
+import { createStore, MemoryStore } from "./src/store.js";
 
 dotenv.config();
 
@@ -40,10 +40,23 @@ app.use(
   })
 );
 
-const store = await createStore();
-console.log(`Store initialized in ${store.kind} mode`);
-app.use("/", createRouter(store));
+async function start() {
+  let store;
+  try {
+    store = await createStore();
+  } catch (error) {
+    console.error("Unexpected startup error. Starting in temporary memory mode.", error);
+    store = new MemoryStore();
+    store.kind = "memory-startup-error";
+    store.databaseError = error?.message || String(error);
+  }
 
-app.listen(port, () => {
-  console.log(`WhatsApp Contact Guard web app running on http://localhost:${port}`);
-});
+  console.log(`Store initialized in ${store.kind} mode`);
+  app.use("/", createRouter(store));
+
+  app.listen(port, "0.0.0.0", () => {
+    console.log(`WhatsApp Contact Guard web app running on port ${port}`);
+  });
+}
+
+start();

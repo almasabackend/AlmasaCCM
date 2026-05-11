@@ -12,7 +12,7 @@
         <span class="brand-mark">W</span>
         <div>
           <strong>WhatsApp Contact Guard</strong>
-          <small><%= storeKind === "mysql" ? "Hostinger SQL" : "Local demo memory" %></small>
+          <small><%= storeKind === "mysql" ? "Hostinger SQL" : storeKind.includes("error") ? "Diagnostics mode" : "Local demo memory" %></small>
         </div>
       </div>
 

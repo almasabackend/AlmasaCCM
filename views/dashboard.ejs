@@ -11,9 +11,9 @@
     <div class="alert warning">No Hostinger database credentials are set, so this is running with temporary demo memory. Add environment variables before production use.</div>
   <% } %>
 
-  <% if (storeKind === "memory-db-error") { %>
+  <% if (storeKind === "memory-db-error" || storeKind === "memory-startup-error") { %>
     <div class="alert danger">
-      Database connection failed, so this is running in temporary memory mode. Check your Hostinger DB_HOST, DB_USER, DB_PASSWORD, and DB_NAME values.
+      Startup or database connection failed, so this is running in temporary memory mode. Check Hostinger runtime logs and your DB_HOST, DB_USER, DB_PASSWORD, and DB_NAME values.
     </div>
   <% } %>
 
