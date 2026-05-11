@@ -8,7 +8,7 @@ import { COUNTRIES, countryFromCode, countryTabs, isAllCountry } from "./countri
 import { buildCampaignExport } from "./exportService.mjs";
 import { buildFilteredUpload } from "./filterService.mjs";
 import { runDiagnostics } from "./diagnostics.mjs";
-import { importContactFiles } from "./importService.mjs";
+import { commitImportPreview, previewContactFiles } from "./importService.mjs";
 import { normalizePhone } from "./phone.mjs";
 import { authenticateUser, authConfigured } from "./auth.mjs";
 
@@ -16,6 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const upload = multer({ dest: path.join(__dirname, "..", "uploads") });
 const filterDownloads = new Map();
+const importPreviews = new Map();
 
 export function createRouter(store) {
   const router = express.Router();
@@ -180,7 +181,7 @@ export function createRouter(store) {
       res.redirect("/AE/import");
       return;
     }
-    res.render("import", { result: null });
+    res.render("import", { result: null, preview: null });
   });
 
   router.post("/:country/import", upload.array("files", 10), async (req, res, next) => {
@@ -190,16 +191,44 @@ export function createRouter(store) {
         return;
       }
       if (!req.files?.length) {
-        res.render("import", { result: { error: "Choose at least one CSV or Excel file." } });
+        res.render("import", { result: { error: "Choose at least one CSV or Excel file." }, preview: null });
         return;
       }
-      const result = await importContactFiles({
+      const preview = await previewContactFiles({
         files: req.files,
         country: req.country.code,
         store,
         updateExisting: req.body.updateExisting === "1"
       });
-      res.render("import", { result });
+      const token = rememberImportPreview(req.country.code, preview);
+      res.render("import", { result: null, preview: { ...preview, token } });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:country/import/confirm/:token", async (req, res, next) => {
+    try {
+      if (isAllCountry(req.country.code)) {
+        res.redirect("/AE/import");
+        return;
+      }
+      const preview = importPreviews.get(req.params.token);
+      if (!preview || preview.country !== req.country.code) {
+        res.status(410).render("import", {
+          result: { error: "This import preview expired. Please upload the file again." },
+          preview: null
+        });
+        return;
+      }
+      const snapshot = await store.createRollbackSnapshot({
+        country: req.country.code,
+        label: `Before import: ${preview.data.summary.file_name}`,
+        summary: preview.data.summary
+      });
+      const result = await commitImportPreview({ preview: preview.data, store });
+      importPreviews.delete(req.params.token);
+      res.render("import", { result: { ...result, snapshot }, preview: null });
     } catch (error) {
       next(error);
     }
@@ -285,8 +314,23 @@ export function createRouter(store) {
 
   router.get("/:country/history", async (req, res, next) => {
     try {
-      const history = await store.importHistory(req.country.code);
-      res.render("history", { history });
+      const [history, snapshots] = await Promise.all([
+        store.importHistory(req.country.code),
+        store.rollbackSnapshots(req.country.code)
+      ]);
+      res.render("history", { history, snapshots, message: req.query.message || "" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:country/history/rollback/:id", async (req, res, next) => {
+    try {
+      const snapshot = await store.restoreRollbackSnapshot(req.params.id);
+      const message = snapshot
+        ? `Database restored to snapshot "${snapshot.label}" from ${snapshot.created_at}.`
+        : "Snapshot was not found.";
+      res.redirect(`/${req.country.code}/history?message=${encodeURIComponent(message)}`);
     } catch (error) {
       next(error);
     }
@@ -315,6 +359,25 @@ function rememberFilterDownload(country, filtered) {
   });
   cleanupFilterDownloads();
   return token;
+}
+
+function rememberImportPreview(country, data) {
+  const token = crypto.randomBytes(18).toString("hex");
+  importPreviews.set(token, {
+    country,
+    data,
+    createdAt: Date.now()
+  });
+  cleanupImportPreviews();
+  return token;
+}
+
+function cleanupImportPreviews() {
+  const maxAgeMs = 30 * 60 * 1000;
+  const now = Date.now();
+  for (const [token, item] of importPreviews.entries()) {
+    if (now - item.createdAt > maxAgeMs) importPreviews.delete(token);
+  }
 }
 
 function cleanupFilterDownloads() {

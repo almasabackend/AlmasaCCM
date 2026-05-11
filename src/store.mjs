@@ -2,6 +2,24 @@ import mysql from "mysql2/promise";
 
 const STATUS_VALUES = new Set(["subscribed", "unsubscribed", "invalid", "blocked"]);
 const COUNTRY_VALUES = new Set(["AE", "SA"]);
+const CONTACT_COLUMNS = [
+  "id",
+  "country",
+  "phone_e164",
+  "phone_display",
+  "raw_phone",
+  "company_name",
+  "contact_name",
+  "email",
+  "source_file",
+  "source_sheet",
+  "status",
+  "notes",
+  "tags",
+  "first_added_at",
+  "last_updated_at",
+  "unsubscribed_at"
+];
 
 export async function createStore() {
   if (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME) {
@@ -97,6 +115,19 @@ export class MySqlStore {
         created_at DATETIME NOT NULL,
         PRIMARY KEY (group_id, contact_id),
         INDEX idx_group_members_contact (contact_id)
+      )
+    `);
+    await this.pool.execute(`
+      CREATE TABLE IF NOT EXISTS rollback_snapshots (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        country ENUM('AE', 'SA') NOT NULL DEFAULT 'AE',
+        label VARCHAR(255),
+        summary_json LONGTEXT,
+        contacts_json LONGTEXT NOT NULL,
+        groups_json LONGTEXT NOT NULL,
+        group_members_json LONGTEXT NOT NULL,
+        created_at DATETIME NOT NULL,
+        INDEX idx_rollback_snapshots_country_date (country, created_at)
       )
     `);
   }
@@ -309,6 +340,114 @@ export class MySqlStore {
     const [rows] = await this.pool.execute(`SELECT * FROM import_history ${countryClause} ORDER BY imported_at DESC, id DESC LIMIT 200`, params);
     return rows;
   }
+
+  async createRollbackSnapshot({ country, label = "", summary = {} }) {
+    const cleanCountry = COUNTRY_VALUES.has(country) ? country : "AE";
+    const [contacts] = await this.pool.execute("SELECT * FROM contacts WHERE country = :country ORDER BY id", { country: cleanCountry });
+    const [groups] = await this.pool.execute("SELECT * FROM contact_groups WHERE country = :country ORDER BY id", { country: cleanCountry });
+    const [groupMembers] = await this.pool.execute(
+      `
+      SELECT DISTINCT gm.*
+      FROM contact_group_members gm
+      LEFT JOIN contacts c ON c.id = gm.contact_id
+      LEFT JOIN contact_groups g ON g.id = gm.group_id
+      WHERE c.country = :country OR g.country = :country
+      ORDER BY gm.group_id, gm.contact_id
+      `,
+      { country: cleanCountry }
+    );
+    const [result] = await this.pool.execute(
+      `
+      INSERT INTO rollback_snapshots (
+        country, label, summary_json, contacts_json, groups_json, group_members_json, created_at
+      ) VALUES (
+        :country, :label, :summary_json, :contacts_json, :groups_json, :group_members_json, :created_at
+      )
+      `,
+      {
+        country: cleanCountry,
+        label: cleanOptional(label) || "Before confirmed import",
+        summary_json: JSON.stringify(summary || {}),
+        contacts_json: JSON.stringify(contacts),
+        groups_json: JSON.stringify(groups),
+        group_members_json: JSON.stringify(groupMembers),
+        created_at: sqlNow()
+      }
+    );
+    return { id: result.insertId, country: cleanCountry, label, contacts_count: contacts.length };
+  }
+
+  async rollbackSnapshots(country) {
+    const countryClause = isAllCountryCode(country) ? "" : "WHERE country = :country";
+    const params = isAllCountryCode(country) ? {} : { country };
+    const [rows] = await this.pool.execute(
+      `
+      SELECT id, country, label, summary_json, contacts_json, created_at
+      FROM rollback_snapshots
+      ${countryClause}
+      ORDER BY created_at DESC, id DESC
+      LIMIT 100
+      `,
+      params
+    );
+    return rows.map((row) => snapshotListRow(row));
+  }
+
+  async restoreRollbackSnapshot(id) {
+    const [rows] = await this.pool.execute("SELECT * FROM rollback_snapshots WHERE id = :id LIMIT 1", { id: Number(id) });
+    const snapshot = rows[0];
+    if (!snapshot) return null;
+    const country = snapshot.country;
+    const contacts = parseJson(snapshot.contacts_json, []);
+    const groups = parseJson(snapshot.groups_json, []);
+    const groupMembers = parseJson(snapshot.group_members_json, []);
+    const conn = await this.pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.execute(
+        `
+        DELETE gm FROM contact_group_members gm
+        INNER JOIN contacts c ON c.id = gm.contact_id
+        WHERE c.country = :country
+        `,
+        { country }
+      );
+      await conn.execute(
+        `
+        DELETE gm FROM contact_group_members gm
+        INNER JOIN contact_groups g ON g.id = gm.group_id
+        WHERE g.country = :country
+        `,
+        { country }
+      );
+      await conn.execute("DELETE FROM contacts WHERE country = :country", { country });
+      await conn.execute("DELETE FROM contact_groups WHERE country = :country", { country });
+
+      const contactSql = `INSERT INTO contacts (${CONTACT_COLUMNS.join(", ")}) VALUES (${CONTACT_COLUMNS.map((column) => `:${column}`).join(", ")})`;
+      for (const contact of contacts) {
+        await conn.execute(contactSql, paramsForColumns(contact, CONTACT_COLUMNS));
+      }
+      for (const group of groups) {
+        await conn.execute(
+          "INSERT INTO contact_groups (id, country, name, created_at) VALUES (:id, :country, :name, :created_at)",
+          paramsForColumns(group, ["id", "country", "name", "created_at"])
+        );
+      }
+      for (const member of groupMembers) {
+        await conn.execute(
+          "INSERT IGNORE INTO contact_group_members (group_id, contact_id, created_at) VALUES (:group_id, :contact_id, :created_at)",
+          paramsForColumns(member, ["group_id", "contact_id", "created_at"])
+        );
+      }
+      await conn.commit();
+      return snapshotListRow(snapshot);
+    } catch (error) {
+      await conn.rollback();
+      throw error;
+    } finally {
+      conn.release();
+    }
+  }
 }
 
 export class MemoryStore {
@@ -319,9 +458,11 @@ export class MemoryStore {
     this.history = [];
     this.groups = [];
     this.groupMembers = [];
+    this.snapshots = [];
     this.nextId = 1;
     this.nextHistoryId = 1;
     this.nextGroupId = 1;
+    this.nextSnapshotId = 1;
   }
 
   async summary(country) {
@@ -460,6 +601,51 @@ export class MemoryStore {
   async importHistory(country) {
     return this.history.filter((item) => isAllCountryCode(country) || item.country === country);
   }
+
+  async createRollbackSnapshot({ country, label = "", summary = {} }) {
+    const cleanCountry = COUNTRY_VALUES.has(country) ? country : "AE";
+    const contacts = cloneJson(this.contacts.filter((contact) => contact.country === cleanCountry));
+    const groups = cloneJson(this.groups.filter((group) => group.country === cleanCountry));
+    const groupIds = new Set(groups.map((group) => group.id));
+    const contactIds = new Set(contacts.map((contact) => contact.id));
+    const groupMembers = cloneJson(this.groupMembers.filter((member) => groupIds.has(member.group_id) || contactIds.has(member.contact_id)));
+    const snapshot = {
+      id: this.nextSnapshotId++,
+      country: cleanCountry,
+      label: cleanOptional(label) || "Before confirmed import",
+      summary_json: JSON.stringify(summary || {}),
+      contacts_json: JSON.stringify(contacts),
+      groups_json: JSON.stringify(groups),
+      group_members_json: JSON.stringify(groupMembers),
+      created_at: sqlNow()
+    };
+    this.snapshots.unshift(snapshot);
+    return snapshotListRow(snapshot);
+  }
+
+  async rollbackSnapshots(country) {
+    return this.snapshots
+      .filter((snapshot) => isAllCountryCode(country) || snapshot.country === country)
+      .map((snapshot) => snapshotListRow(snapshot));
+  }
+
+  async restoreRollbackSnapshot(id) {
+    const snapshot = this.snapshots.find((item) => item.id === Number(id));
+    if (!snapshot) return null;
+    const country = snapshot.country;
+    const contacts = parseJson(snapshot.contacts_json, []);
+    const groups = parseJson(snapshot.groups_json, []);
+    const groupMembers = parseJson(snapshot.group_members_json, []);
+    const contactIds = new Set(this.contacts.filter((contact) => contact.country === country).map((contact) => contact.id));
+    const groupIds = new Set(this.groups.filter((group) => group.country === country).map((group) => group.id));
+    this.groupMembers = this.groupMembers.filter((member) => !contactIds.has(member.contact_id) && !groupIds.has(member.group_id));
+    this.contacts = this.contacts.filter((contact) => contact.country !== country).concat(cloneJson(contacts));
+    this.groups = this.groups.filter((group) => group.country !== country).concat(cloneJson(groups));
+    this.groupMembers = this.groupMembers.concat(cloneJson(groupMembers));
+    this.nextId = Math.max(this.nextId, ...this.contacts.map((contact) => Number(contact.id) + 1), 1);
+    this.nextGroupId = Math.max(this.nextGroupId, ...this.groups.map((group) => Number(group.id) + 1), 1);
+    return snapshotListRow(snapshot);
+  }
 }
 
 function normalizeSummary(row = {}, lastImport) {
@@ -505,6 +691,35 @@ function cleanOptional(value) {
   const text = String(value).trim();
   if (["nan", "none", "null", "undefined"].includes(text.toLowerCase())) return "";
   return text;
+}
+
+function snapshotListRow(row) {
+  const summary = parseJson(row.summary_json, {});
+  const contacts = parseJson(row.contacts_json, []);
+  return {
+    id: row.id,
+    country: row.country,
+    label: row.label || "Before confirmed import",
+    created_at: row.created_at,
+    contacts_count: Array.isArray(contacts) ? contacts.length : 0,
+    summary
+  };
+}
+
+function parseJson(value, fallback) {
+  try {
+    return JSON.parse(value || "");
+  } catch {
+    return fallback;
+  }
+}
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function paramsForColumns(row, columns) {
+  return Object.fromEntries(columns.map((column) => [column, row?.[column] ?? null]));
 }
 
 function sqlNow() {

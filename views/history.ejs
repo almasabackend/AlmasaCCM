@@ -1,12 +1,51 @@
 <%- include("partials/header") %>
   <header class="page-header">
     <div>
-      <h1><%= currentCountry.name %> Import History</h1>
-      <p>Recent imports and suppression updates.</p>
+      <h1><%= currentCountry.name %> Upload History</h1>
+      <p>Recent uploads, suppression updates, and rollback restore points.</p>
     </div>
   </header>
 
+  <% if (message) { %><div class="alert"><%= message %></div><% } %>
+
   <section class="panel">
+    <h2>Rollback snapshots</h2>
+    <p class="muted">A snapshot is created before every confirmed import so you can restore the database to the previous version.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Country</th>
+            <th>Snapshot</th>
+            <th>Contacts saved</th>
+            <th>Will restore before upload</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% snapshots.forEach((item) => { %>
+            <tr>
+              <td><%= item.created_at %></td>
+              <td><%= item.country %></td>
+              <td><%= item.label %></td>
+              <td><%= item.contacts_count %></td>
+              <td><%= item.summary?.file_name || "Manual snapshot" %></td>
+              <td>
+                <form method="post" action="/<%= currentCountry.code %>/history/rollback/<%= item.id %>" onsubmit="return confirm('Restore this previous database version? This will replace the current <%= item.country %> contacts with the saved snapshot.');">
+                  <button class="danger-button" type="submit">Restore</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% if (!snapshots.length) { %><p class="muted">No rollback snapshots yet. The next confirmed import will create one automatically.</p><% } %>
+  </section>
+
+  <section class="panel">
+    <h2>Upload history</h2>
     <div class="table-wrap">
       <table>
         <thead>
@@ -44,4 +83,3 @@
     <% if (!history.length) { %><p class="muted">No import history yet.</p><% } %>
   </section>
 <%- include("partials/footer") %>
-

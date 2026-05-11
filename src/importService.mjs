@@ -7,9 +7,10 @@ import { COUNTRIES } from "./countries.mjs";
 import { cleanText, extractPhoneCandidates, normalizePhone } from "./phone.mjs";
 import { detectSubscriptionStatus } from "./statusDetector.mjs";
 
-export async function importContactFiles({ files, country, store, updateExisting = false }) {
+export async function previewContactFiles({ files, country, store, updateExisting = false }) {
   const summary = emptySummary(country, files.map((file) => file.originalname).join(", "));
   const results = [];
+  const records = [];
   const seen = new Set();
 
   for (const file of files) {
@@ -41,31 +42,63 @@ export async function importContactFiles({ files, country, store, updateExisting
           seen.add(normalized.e164);
 
           const targetCountry = COUNTRIES[normalized.country] ? normalized.country : country;
-          const outcome = await store.upsertImportedContact(
-            {
-              country: targetCountry,
-              phone_e164: normalized.e164,
-              phone_display: normalized.display,
-              raw_phone: candidate,
-              company_name: details.company_name,
-              contact_name: details.contact_name,
-              email: details.email,
-              source_file: file.originalname,
-              source_sheet: sheetName,
-              incoming_status: incomingStatus
-            },
-            { updateExisting }
-          );
+          const record = {
+            country: targetCountry,
+            phone_e164: normalized.e164,
+            phone_display: normalized.display,
+            raw_phone: candidate,
+            company_name: details.company_name,
+            contact_name: details.contact_name,
+            email: details.email,
+            source_file: file.originalname,
+            source_sheet: sheetName,
+            incoming_status: incomingStatus
+          };
+          const existing = await store.findContactByPhone(normalized.e164);
+          const outcome = previewOutcome(existing, record, updateExisting);
           applyOutcome(summary, outcome);
           results.push(resultRow({ index, candidate, normalized, status: labelForOutcome(outcome, incomingStatus), file, sheetName, details, incomingStatus, country: targetCountry }));
+          records.push(record);
         }
       }
     }
     await safeUnlink(file.path);
   }
 
+  return { summary, results, records, updateExisting };
+}
+
+export async function commitImportPreview({ preview, store }) {
+  const summary = emptySummary(preview.summary.country, preview.summary.file_name);
+  const results = [];
+  for (const record of preview.records) {
+    const outcome = await store.upsertImportedContact(record, { updateExisting: preview.updateExisting });
+    applyOutcome(summary, outcome);
+    results.push({
+      country: record.country,
+      phone_e164: record.phone_e164,
+      raw_phone: record.raw_phone,
+      company_name: record.company_name || "",
+      contact_name: record.contact_name || "",
+      email: record.email || "",
+      detected_status: record.incoming_status,
+      result: labelForOutcome(outcome, record.incoming_status),
+      source_file: record.source_file,
+      source_sheet: record.source_sheet
+    });
+  }
+  summary.total_rows = preview.summary.total_rows;
+  summary.numbers_found = preview.summary.numbers_found;
+  summary.duplicates = preview.summary.duplicates;
+  summary.invalid_numbers = preview.summary.invalid_numbers;
+  summary.preview_unchanged = preview.summary.preview_unchanged || 0;
   await store.addImportHistory(summary);
   return { summary, results };
+}
+
+export async function importContactFiles({ files, country, store, updateExisting = false }) {
+  const preview = await previewContactFiles({ files, country, store, updateExisting });
+  return commitImportPreview({ preview, store });
 }
 
 export async function readUploadedFile(file) {
@@ -122,6 +155,10 @@ function emptySummary(country, fileName) {
     new_added: 0,
     already_existing: 0,
     existing_updated: 0,
+    preview_will_add: 0,
+    preview_will_update: 0,
+    preview_will_remove: 0,
+    preview_unchanged: 0,
     duplicates: 0,
     unsubscribed_blocked: 0,
     invalid_numbers: 0,
@@ -137,6 +174,40 @@ function applyOutcome(summary, outcome) {
   } else if (outcome === "already_subscribed") summary.already_existing += 1;
   else if (outcome === "suppressed_blocked") summary.unsubscribed_blocked += 1;
   else if (["new_unsubscribed", "changed_to_unsubscribed", "already_unsubscribed"].includes(outcome)) summary.imported_unsubscribed += 1;
+  if (outcome === "new_added" || outcome === "new_unsubscribed") summary.preview_will_add += 1;
+  else if (outcome === "existing_updated") summary.preview_will_update += 1;
+  else if (outcome === "changed_to_unsubscribed") {
+    summary.preview_will_update += 1;
+    summary.preview_will_remove += 1;
+  } else if (outcome === "already_subscribed" || outcome === "already_unsubscribed" || outcome === "suppressed_blocked") {
+    summary.preview_unchanged += 1;
+  }
+}
+
+function previewOutcome(existing, record, updateExisting) {
+  const incomingStatus = record.incoming_status === "unsubscribed" ? "unsubscribed" : "subscribed";
+  if (!existing) return incomingStatus === "unsubscribed" ? "new_unsubscribed" : "new_added";
+  if (incomingStatus === "unsubscribed") return existing.status === "unsubscribed" ? "already_unsubscribed" : "changed_to_unsubscribed";
+  if (["unsubscribed", "blocked"].includes(existing.status)) return "suppressed_blocked";
+  const updates = detailsToPreviewUpdate(existing, record, updateExisting);
+  return Object.keys(updates).length ? "existing_updated" : "already_subscribed";
+}
+
+function detailsToPreviewUpdate(existing, record, updateExisting) {
+  const updates = {};
+  for (const field of ["company_name", "contact_name", "email", "source_file", "source_sheet", "raw_phone", "phone_display"]) {
+    const value = cleanOptional(record[field]);
+    if (!value) continue;
+    if (updateExisting || !existing[field]) updates[field] = value;
+  }
+  return updates;
+}
+
+function cleanOptional(value) {
+  if (value === null || value === undefined) return "";
+  const text = String(value).trim();
+  if (["nan", "none", "null", "undefined"].includes(text.toLowerCase())) return "";
+  return text;
 }
 
 function labelForOutcome(outcome, incomingStatus) {

@@ -20,7 +20,7 @@
           Update existing contact details from imported file
         </label>
       </div>
-      <button type="submit">Import and filter contacts</button>
+      <button type="submit">Preview import</button>
     </form>
   </section>
 
@@ -45,9 +45,76 @@
     <div class="alert danger"><%= result.error %></div>
   <% } %>
 
+  <% if (preview?.summary) { %>
+    <section class="panel confirm-panel">
+      <div class="confirm-header">
+        <div>
+          <h2>Confirm database update</h2>
+          <p class="muted">Nothing has been saved yet. Review these counts, then confirm only if this looks correct.</p>
+        </div>
+        <span class="status grey">Waiting for confirmation</span>
+      </div>
+      <div class="summary-grid">
+        <span>Will be added <strong><%= preview.summary.preview_will_add %></strong></span>
+        <span>Will be removed from active list <strong><%= preview.summary.preview_will_remove %></strong></span>
+        <span>Will be updated <strong><%= preview.summary.preview_will_update %></strong></span>
+        <span>Unchanged <strong><%= preview.summary.preview_unchanged %></strong></span>
+        <span>Duplicated <strong><%= preview.summary.duplicates %></strong></span>
+        <span>Invalid <strong><%= preview.summary.invalid_numbers %></strong></span>
+        <span>Rows scanned <strong><%= preview.summary.total_rows %></strong></span>
+        <span>Numbers found <strong><%= preview.summary.numbers_found %></strong></span>
+      </div>
+      <% if (preview.summary.imported_unsubscribed) { %>
+        <div class="alert warning">This upload contains <strong><%= preview.summary.imported_unsubscribed %></strong> unsubscribe/suppression records. Confirming will mark those contacts as Unsubscribed in the main database.</div>
+      <% } %>
+      <div class="button-row result-actions">
+        <form method="post" action="/<%= currentCountry.code %>/import/confirm/<%= preview.token %>">
+          <button type="submit">Confirm and update database</button>
+        </form>
+        <a class="secondary-button" href="/<%= currentCountry.code %>/import">Cancel import</a>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Preview results</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Country</th>
+              <th>WhatsApp number</th>
+              <th>Company</th>
+              <th>Person</th>
+              <th>Email</th>
+              <th>Detected status</th>
+              <th>Preview result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% preview.results.slice(0, 300).forEach((row) => { %>
+              <tr>
+                <td><%= row.country || currentCountry.code %></td>
+                <td><%= row.phone_e164 || row.raw_phone %></td>
+                <td><%= row.company_name %></td>
+                <td><%= row.contact_name %></td>
+                <td><%= row.email %></td>
+                <td><%= row.detected_status %></td>
+                <td><span class="status <%= row.result.toLowerCase().includes("unsub") || row.result.toLowerCase().includes("suppress") ? "red" : row.result.toLowerCase().includes("invalid") ? "grey" : "green" %>"><%= row.result %></span></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% if (preview.results.length > 300) { %><p class="muted">Showing first 300 rows.</p><% } %>
+    </section>
+  <% } %>
+
   <% if (result?.summary) { %>
     <section class="panel">
       <h2>Import summary</h2>
+      <% if (result.snapshot) { %>
+        <div class="alert">Rollback snapshot created before this import: <strong><%= result.snapshot.label %></strong>.</div>
+      <% } %>
       <div class="summary-grid">
         <span>Rows scanned <strong><%= result.summary.total_rows %></strong></span>
         <span>Numbers found <strong><%= result.summary.numbers_found %></strong></span>

@@ -7,7 +7,7 @@ import ExcelJS from "exceljs";
 
 import { buildCampaignExport } from "../src/exportService.mjs";
 import { buildFilteredUpload } from "../src/filterService.mjs";
-import { importContactFiles } from "../src/importService.mjs";
+import { commitImportPreview, importContactFiles, previewContactFiles } from "../src/importService.mjs";
 import { MemoryStore } from "../src/store.mjs";
 
 test("imports subscribe and unsubscribe rows from Excel and suppresses exports", async () => {
@@ -250,4 +250,72 @@ test("filter removes a whole row if any phone in that row is suppressed", async 
   assert.equal(filtered.summary.removed_suppressed, 1);
   assert.doesNotMatch(csv, /Mixed Row/);
   assert.doesNotMatch(csv, /\+971501234567/);
+});
+
+test("contact import preview requires confirmation before database writes", async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wcg-preview-"));
+  const filePath = path.join(tempDir, "preview.xlsx");
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Sheet1");
+  worksheet.addRow(["Mobile", "Contact Person", "Company", "Status"]);
+  worksheet.addRow(["0552605247", "Preview Person", "Preview Co", "subscribed"]);
+  await workbook.xlsx.writeFile(filePath);
+
+  const store = new MemoryStore();
+  const preview = await previewContactFiles({
+    files: [{ path: filePath, originalname: "preview.xlsx" }],
+    country: "AE",
+    store
+  });
+
+  assert.equal(preview.summary.preview_will_add, 1);
+  assert.equal((await store.listContacts({ country: "AE" })).length, 0);
+
+  await store.createRollbackSnapshot({ country: "AE", label: "Before preview import", summary: preview.summary });
+  await commitImportPreview({ preview, store });
+
+  const contacts = await store.listContacts({ country: "AE" });
+  assert.equal(contacts.length, 1);
+  assert.equal(contacts[0].phone_e164, "+971552605247");
+});
+
+test("confirmed unsubscribe upload updates existing contact and rollback restores it", async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wcg-rollback-"));
+  const filePath = path.join(tempDir, "unsubscribe.xlsx");
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Sheet1");
+  worksheet.addRow(["Mobile", "Contact Person", "Company", "Status"]);
+  worksheet.addRow(["0552605247", "Existing Person", "Existing Co", "unsubscribe"]);
+  await workbook.xlsx.writeFile(filePath);
+
+  const store = new MemoryStore();
+  await store.upsertImportedContact({
+    country: "AE",
+    phone_e164: "+971552605247",
+    phone_display: "+971 55 260 5247",
+    raw_phone: "0552605247",
+    company_name: "Existing Co",
+    contact_name: "Existing Person",
+    email: "",
+    source_file: "old.xlsx",
+    source_sheet: "",
+    incoming_status: "subscribed"
+  });
+
+  const preview = await previewContactFiles({
+    files: [{ path: filePath, originalname: "unsubscribe.xlsx" }],
+    country: "AE",
+    store
+  });
+  const snapshot = await store.createRollbackSnapshot({ country: "AE", label: "Before unsubscribe", summary: preview.summary });
+  const result = await commitImportPreview({ preview, store });
+  const [suppressed] = await store.listContacts({ country: "AE" });
+
+  assert.equal(preview.summary.preview_will_remove, 1);
+  assert.equal(result.summary.imported_unsubscribed, 1);
+  assert.equal(suppressed.status, "unsubscribed");
+
+  await store.restoreRollbackSnapshot(snapshot.id);
+  const [restored] = await store.listContacts({ country: "AE" });
+  assert.equal(restored.status, "subscribed");
 });
