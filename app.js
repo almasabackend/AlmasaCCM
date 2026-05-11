@@ -50,6 +50,29 @@ app.get("/diagnostics", async (_req, res) => {
   res.type("html").send(renderDiagnosticsHtml(diagnostics));
 });
 
+app.get("/login", (_req, res) => {
+  res.render("login", { error: "", email: "" });
+});
+
+app.post("/login", (req, res) => {
+  const user = authenticateEntrypointUser(req.body.email, req.body.password);
+  if (!user) {
+    res.status(401).render("login", {
+      error: "Wrong email or password.",
+      email: req.body.email || ""
+    });
+    return;
+  }
+
+  req.session.authenticated = true;
+  req.session.user = user;
+  res.redirect("/");
+});
+
+app.post("/logout", (req, res) => {
+  req.session.destroy(() => res.redirect("/login"));
+});
+
 app.get("/", (req, res, next) => {
   if (storeKind === "booting") {
     res.redirect("/diagnostics");
@@ -127,6 +150,29 @@ function appSnapshot() {
     store_kind: storeKind,
     started_at: startedAt,
     database_startup_error: startupError
+  };
+}
+
+function authenticateEntrypointUser(email, password) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const suppliedPassword = String(password || "");
+  const users = [
+    {
+      email: "udaraka@almasauae.com",
+      name: "Udaraka",
+      password: process.env.UDARAKA_PASSWORD || process.env.ADMIN_PASSWORD || ""
+    },
+    {
+      email: "shuaib.m@almasauae.com",
+      name: "Shuaib",
+      password: process.env.SHUAIB_PASSWORD || process.env.ADMIN_PASSWORD || ""
+    }
+  ];
+  const user = users.find((candidate) => candidate.email === normalizedEmail);
+  if (!user || !user.password || suppliedPassword !== user.password) return null;
+  return {
+    email: user.email,
+    name: user.name
   };
 }
 
