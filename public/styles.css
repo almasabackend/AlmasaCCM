@@ -27,11 +27,12 @@ body {
   margin: 0;
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
   background: var(--page);
   color: var(--ink);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   letter-spacing: 0;
+  overflow-x: hidden;
 }
 
 @keyframes rise-in {
@@ -60,6 +61,10 @@ textarea {
   padding: 22px 18px;
   position: sticky;
   top: 0;
+  width: 100%;
+  max-width: 280px;
+  overflow: hidden auto;
+  z-index: 2;
 }
 
 .brand {
@@ -67,10 +72,13 @@ textarea {
   gap: 10px;
   align-items: start;
   margin-bottom: 24px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .brand-logo {
-  width: 138px;
+  display: block;
+  width: min(180px, 100%);
   max-height: 44px;
   object-fit: contain;
   background: #fff;
@@ -78,18 +86,16 @@ textarea {
   padding: 6px;
 }
 
-.brand strong,
 .brand small {
   display: block;
-}
-
-.brand strong {
-  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .brand small {
   color: #aab7c4;
-  margin-top: 3px;
 }
 
 .country-tabs {
@@ -113,6 +119,7 @@ textarea {
   background: transparent;
   text-align: left;
   cursor: pointer;
+  overflow-wrap: anywhere;
   transition: background 180ms ease, color 180ms ease, transform 180ms ease;
 }
 
@@ -204,6 +211,7 @@ textarea {
 .main {
   padding: 28px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .page-header {
@@ -222,6 +230,7 @@ h2 {
 h1 {
   font-size: 30px;
   line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 h2 {
@@ -232,6 +241,7 @@ h2 {
 p {
   color: var(--muted);
   margin: 8px 0 0;
+  overflow-wrap: anywhere;
 }
 
 .button,

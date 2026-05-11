@@ -11,10 +11,7 @@
     <aside class="sidebar">
       <div class="brand">
         <img class="brand-logo" src="/assets/almasa-logo.svg" alt="Almasa">
-        <div>
-          <strong>Almasa Campaign Contact Management</strong>
-          <small><%= storeKind === "mysql" ? "Hostinger SQL" : storeKind.includes("error") ? "Diagnostics mode" : "Local demo memory" %></small>
-        </div>
+        <small><%= storeKind === "mysql" ? "Hostinger SQL" : storeKind.includes("error") ? "Diagnostics mode" : "Local demo memory" %></small>
       </div>
 
       <% if (typeof currentCountry !== "undefined") { %>
