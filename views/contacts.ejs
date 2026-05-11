@@ -1,8 +1,8 @@
 <%- include("partials/header") %>
   <header class="page-header">
     <div>
-      <h1><%= currentCountry.name %> Contacts</h1>
-      <p>Manage company, person, WhatsApp number, email, and subscription status.</p>
+      <h1><span class="page-flag"><%= currentCountry.flag %></span><%= currentCountry.name %> Contacts</h1>
+      <p><%= groupTitle %>. Manage company, person, WhatsApp number, email, and subscription status.</p>
     </div>
   </header>
 
@@ -94,4 +94,3 @@
     <% if (!contacts.length) { %><p class="muted">No contacts found.</p><% } %>
   </section>
 <%- include("partials/footer") %>
-

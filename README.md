@@ -14,6 +14,8 @@ This web version supports:
 - Automatic detection of subscribed/unsubscribed text in uploaded rows.
 - Suppression logic: unsubscribed or blocked contacts are never exported.
 - Filter My List tool: upload a new CSV/XLSX file and download a clean version with globally unsubscribed/blocked numbers removed, without importing the file into the database.
+- Drag-and-drop upload zones with upload/progress feedback for import and filtering.
+- Contacts submenu for viewing all contacts or status/missing-info groups.
 - Campaign export capped at 1,000 subscribed contacts.
 - Unsubscribe-only export mode for downloading suppressed opt-out contacts.
 - Phone-only export for WhatsApp upload and full contact export for team use.

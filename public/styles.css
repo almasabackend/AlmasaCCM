@@ -19,6 +19,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -28,6 +32,17 @@ body {
   color: var(--ink);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   letter-spacing: 0;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 button,
@@ -86,7 +101,8 @@ textarea {
 
 .country-tabs a,
 .nav a,
-.logout button {
+.logout button,
+.nav-group summary {
   display: block;
   width: 100%;
   color: #dce5ed;
@@ -97,6 +113,7 @@ textarea {
   background: transparent;
   text-align: left;
   cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, transform 180ms ease;
 }
 
 .country-tabs a {
@@ -105,14 +122,58 @@ textarea {
 
 .country-tabs a.active,
 .nav a:hover,
-.logout button:hover {
+.logout button:hover,
+.nav-group summary:hover {
   background: var(--green);
   color: #fff;
+  transform: translateX(2px);
 }
 
 .nav {
   display: grid;
   gap: 5px;
+}
+
+.nav-group {
+  border: 1px solid #334150;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.nav-group summary {
+  list-style: none;
+  font-weight: 750;
+}
+
+.nav-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.nav-group summary::after {
+  content: "▾";
+  float: right;
+  transition: transform 180ms ease;
+}
+
+.nav-group[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.nav-group a {
+  padding-left: 24px;
+  border-radius: 0;
+  font-size: 14px;
+}
+
+.flag,
+.page-flag {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.page-flag {
+  font-size: 0.9em;
+  vertical-align: 0.04em;
 }
 
 .logout {
@@ -173,6 +234,20 @@ button {
   cursor: pointer;
   font-weight: 700;
   white-space: nowrap;
+  transition: background 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.button:hover,
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(22, 131, 79, 0.16);
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.76;
+  transform: none;
+  box-shadow: none;
 }
 
 .button-row {
@@ -191,6 +266,7 @@ button {
   border-radius: 8px;
   padding: 18px;
   margin-bottom: 16px;
+  animation: rise-in 220ms ease both;
 }
 
 .metric-grid {
@@ -291,6 +367,63 @@ textarea {
   width: auto;
 }
 
+.upload-form {
+  gap: 16px;
+}
+
+.upload-form .drop-zone {
+  grid-column: 1 / -1;
+}
+
+.drop-zone {
+  min-height: 132px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  grid-column: span 1;
+  border: 2px dashed #b9c6d3;
+  border-radius: 8px;
+  padding: 18px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+  border-color: var(--green);
+  background: var(--green-bg);
+  transform: translateY(-1px);
+}
+
+.drop-zone input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  overflow: hidden;
+}
+
+.drop-title {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.drop-copy,
+.file-name {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.file-name {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .filters {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) 180px auto auto auto;
@@ -344,7 +477,7 @@ textarea {
   height: 100%;
   background: var(--green);
   border-radius: inherit;
-  transition: width 300ms ease;
+  transition: width 260ms ease;
 }
 
 .progress-steps {
@@ -516,5 +649,15 @@ pre {
   .page-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
   }
 }

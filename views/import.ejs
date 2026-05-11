@@ -1,17 +1,19 @@
 <%- include("partials/header") %>
   <header class="page-header">
     <div>
-      <h1>Import <%= currentCountry.name %> Contacts</h1>
+      <h1><span class="page-flag"><%= currentCountry.flag %></span>Import <%= currentCountry.name %> Contacts</h1>
       <p>Upload CSV/XLSX files. Rows that mention unsubscribe, opt out, stop, remove, or do not contact become suppressed.</p>
     </div>
   </header>
 
   <section class="panel">
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" class="upload-form" data-upload-form data-progress-target="import-progress">
       <div class="form-grid">
-        <label>
-          CSV/XLSX files
+        <label class="drop-zone">
           <input type="file" name="files" accept=".csv,.xlsx,.xlsm,.xltx,.xltm" multiple required>
+          <span class="drop-title">Drop CSV/XLSX files here</span>
+          <span class="drop-copy">or click to choose files</span>
+          <span class="file-name">No file selected</span>
         </label>
         <label class="checkbox">
           <input type="checkbox" name="updateExisting" value="1">
@@ -20,6 +22,23 @@
       </div>
       <button type="submit">Import and filter contacts</button>
     </form>
+  </section>
+
+  <section id="import-progress" class="panel progress-panel" hidden aria-live="polite">
+    <div class="progress-header">
+      <div>
+        <h2>Uploading Contact File</h2>
+        <p class="progress-message">Preparing upload.</p>
+      </div>
+      <strong class="progress-percent">0%</strong>
+    </div>
+    <div class="progress-track"><span class="progress-bar"></span></div>
+    <div class="progress-steps">
+      <span class="active">Upload</span>
+      <span>Read sheets</span>
+      <span>Check database</span>
+      <span>Show results</span>
+    </div>
   </section>
 
   <% if (result?.error) { %>
@@ -76,4 +95,3 @@
     </section>
   <% } %>
 <%- include("partials/footer") %>
-

@@ -1,7 +1,7 @@
 <%- include("partials/header") %>
   <header class="page-header">
     <div>
-      <h1>Filter <%= currentCountry.name %> List</h1>
+      <h1><span class="page-flag"><%= currentCountry.flag %></span>Filter <%= currentCountry.name %> List</h1>
       <p>Upload a CSV/XLSX list to remove any numbers already unsubscribed or blocked in the global database.</p>
     </div>
   </header>
@@ -11,10 +11,12 @@
   <% } %>
 
   <section class="panel">
-    <form id="filter-form" method="post" enctype="multipart/form-data" class="form-grid">
-      <label>
-        CSV/XLSX files
+    <form id="filter-form" method="post" enctype="multipart/form-data" class="form-grid upload-form" data-upload-form data-progress-target="filter-progress">
+      <label class="drop-zone">
         <input type="file" name="files" accept=".csv,.xlsx,.xlsm,.xltx,.xltm" multiple required>
+        <span class="drop-title">Drop CSV/XLSX files here</span>
+        <span class="drop-copy">or click to choose files</span>
+        <span class="file-name">No file selected</span>
       </label>
       <label>
         Download format
@@ -38,11 +40,11 @@
     <div class="progress-header">
       <div>
         <h2>Checking Uploaded List</h2>
-        <p id="progress-message">Uploading file and preparing phone number scan.</p>
+        <p class="progress-message">Uploading file and preparing phone number scan.</p>
       </div>
-      <strong id="progress-percent">0%</strong>
+      <strong class="progress-percent">0%</strong>
     </div>
-    <div class="progress-track"><span id="progress-bar"></span></div>
+    <div class="progress-track"><span class="progress-bar"></span></div>
     <div class="progress-steps">
       <span class="active">Upload</span>
       <span>Detect phones</span>
@@ -91,32 +93,4 @@
       <span>Does not import <strong>No DB change</strong></span>
     </div>
   </section>
-  <script>
-    const form = document.getElementById("filter-form");
-    const progress = document.getElementById("filter-progress");
-    const bar = document.getElementById("progress-bar");
-    const percent = document.getElementById("progress-percent");
-    const message = document.getElementById("progress-message");
-    const steps = [...document.querySelectorAll(".progress-steps span")];
-    const messages = [
-      "Uploading file and preparing phone number scan.",
-      "Detecting phone columns and normalizing numbers.",
-      "Checking against unsubscribed and blocked contacts.",
-      "Building your clean filtered file."
-    ];
-
-    form?.addEventListener("submit", () => {
-      progress.hidden = false;
-      let value = 0;
-      const timer = setInterval(() => {
-        value = Math.min(value + (value < 50 ? 7 : 3), 92);
-        const stepIndex = Math.min(Math.floor(value / 25), steps.length - 1);
-        steps.forEach((step, index) => step.classList.toggle("active", index <= stepIndex));
-        message.textContent = messages[stepIndex];
-        bar.style.width = `${value}%`;
-        percent.textContent = `${value}%`;
-        if (value >= 92) clearInterval(timer);
-      }, 450);
-    });
-  </script>
 <%- include("partials/footer") %>

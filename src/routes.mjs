@@ -92,7 +92,7 @@ export function createRouter(store) {
         limit: 1000
       };
       const contacts = await store.listContacts(filters);
-      res.render("contacts", { contacts, filters, message: req.query.message || "" });
+      res.render("contacts", { contacts, filters, groupTitle: contactGroupTitle(filters), message: req.query.message || "" });
     } catch (error) {
       next(error);
     }
@@ -286,4 +286,16 @@ function cleanupFilterDownloads() {
   for (const [token, item] of filterDownloads.entries()) {
     if (now - item.createdAt > maxAgeMs) filterDownloads.delete(token);
   }
+}
+
+function contactGroupTitle(filters) {
+  if (filters.status) return `${capitalize(filters.status)} contacts`;
+  if (filters.missingCompany) return "Contacts missing company";
+  if (filters.missingName) return "Contacts missing person name";
+  return "All contacts";
+}
+
+function capitalize(value) {
+  const text = String(value || "");
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
 }

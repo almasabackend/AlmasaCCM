@@ -2,6 +2,7 @@ export const COUNTRIES = {
   AE: {
     code: "AE",
     name: "UAE",
+    flag: "🇦🇪",
     region: "AE",
     callingCode: "971",
     localMobilePrefix: "05"
@@ -9,6 +10,7 @@ export const COUNTRIES = {
   SA: {
     code: "SA",
     name: "Saudi Arabia",
+    flag: "🇸🇦",
     region: "SA",
     callingCode: "966",
     localMobilePrefix: "05"
@@ -22,4 +24,3 @@ export function countryFromCode(code) {
 export function countryTabs() {
   return Object.values(COUNTRIES);
 }
-
