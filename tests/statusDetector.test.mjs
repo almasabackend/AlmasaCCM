@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { detectSubscriptionStatus } from "../src/statusDetector.js";
+import { detectSubscriptionStatus } from "../src/statusDetector.mjs";
 
 test("detects unsubscribe phrases from status-like columns", () => {
   assert.equal(detectSubscriptionStatus({ Status: "Unsubscribed" }), "unsubscribed");

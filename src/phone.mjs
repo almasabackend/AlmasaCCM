@@ -1,5 +1,5 @@
 import { parsePhoneNumberFromString } from "libphonenumber-js";
-import { COUNTRIES, countryFromCode } from "./countries.js";
+import { COUNTRIES, countryFromCode } from "./countries.mjs";
 
 const INVISIBLE_RE = /[\u200b-\u200f\u202a-\u202e\u2060\ufeff]/g;
 const PHONE_LIKE_RE = /(?:\+|00)?\d[\d\s().-]{6,}\d/g;

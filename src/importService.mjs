@@ -2,10 +2,10 @@ import fs from "node:fs/promises";
 import { parse } from "csv-parse/sync";
 import ExcelJS from "exceljs";
 
-import { detectColumns, extractContactDetails } from "./columnDetector.js";
-import { COUNTRIES } from "./countries.js";
-import { cleanText, extractPhoneCandidates, normalizePhone } from "./phone.js";
-import { detectSubscriptionStatus } from "./statusDetector.js";
+import { detectColumns, extractContactDetails } from "./columnDetector.mjs";
+import { COUNTRIES } from "./countries.mjs";
+import { cleanText, extractPhoneCandidates, normalizePhone } from "./phone.mjs";
+import { detectSubscriptionStatus } from "./statusDetector.mjs";
 
 export async function importContactFiles({ files, country, store, updateExisting = false }) {
   const summary = emptySummary(country, files.map((file) => file.originalname).join(", "));

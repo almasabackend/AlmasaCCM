@@ -3,11 +3,11 @@ import multer from "multer";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { COUNTRIES, countryFromCode, countryTabs } from "./countries.js";
-import { buildCampaignExport } from "./exportService.js";
-import { runDiagnostics } from "./diagnostics.js";
-import { importContactFiles } from "./importService.js";
-import { normalizePhone } from "./phone.js";
+import { COUNTRIES, countryFromCode, countryTabs } from "./countries.mjs";
+import { buildCampaignExport } from "./exportService.mjs";
+import { runDiagnostics } from "./diagnostics.mjs";
+import { importContactFiles } from "./importService.mjs";
+import { normalizePhone } from "./phone.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

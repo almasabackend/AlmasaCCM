@@ -5,9 +5,9 @@ import os from "node:os";
 import path from "node:path";
 import ExcelJS from "exceljs";
 
-import { buildCampaignExport } from "../src/exportService.js";
-import { importContactFiles } from "../src/importService.js";
-import { MemoryStore } from "../src/store.js";
+import { buildCampaignExport } from "../src/exportService.mjs";
+import { importContactFiles } from "../src/importService.mjs";
+import { MemoryStore } from "../src/store.mjs";
 
 test("imports subscribe and unsubscribe rows from Excel and suppresses exports", async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wcg-"));

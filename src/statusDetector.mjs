@@ -1,4 +1,4 @@
-import { cleanText } from "./phone.js";
+import { cleanText } from "./phone.mjs";
 
 const STATUS_COLUMN_HINTS = [
   "status",

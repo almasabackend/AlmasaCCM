@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
-import { excelSafePhone } from "./phone.js";
-import { rowsToCsv } from "./csv.js";
+import { excelSafePhone } from "./phone.mjs";
+import { rowsToCsv } from "./csv.mjs";
 
 export async function buildCampaignExport({ store, country, limit, order = "newest", mode = "phone_only", format = "excel_safe_csv" }) {
   const rows = await store.contactsForExport({ country, limit, order });

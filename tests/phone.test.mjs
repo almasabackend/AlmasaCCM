@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { excelSafePhone, normalizePhone } from "../src/phone.js";
+import { excelSafePhone, normalizePhone } from "../src/phone.mjs";
 
 test("normalizes UAE phone numbers", () => {
   const cases = new Map([

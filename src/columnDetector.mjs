@@ -1,5 +1,5 @@
-import { cleanText, extractPhoneCandidates, normalizePhone } from "./phone.js";
-import { normalizeHeader } from "./statusDetector.js";
+import { cleanText, extractPhoneCandidates, normalizePhone } from "./phone.mjs";
+import { normalizeHeader } from "./statusDetector.mjs";
 
 const PHONE_HINTS = ["phone", "mobile", "number", "contact number", "whatsapp", "whatsapp number", "tel", "telephone", "contact", "phone no", "mobile no"];
 const NAME_HINTS = ["name", "full name", "contact name", "contact person", "person name", "customer name", "client name", "representative", "manager name", "decision maker"];
