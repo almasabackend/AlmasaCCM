@@ -4,7 +4,10 @@
       <h1><%= currentCountry.name %> Dashboard</h1>
       <p>Country-specific contact and unsubscribe suppression overview.</p>
     </div>
-    <a class="button" href="/<%= currentCountry.code %>/import">Import contacts</a>
+    <div class="button-row">
+      <a class="button" href="/<%= currentCountry.code %>/filter">Filter my list</a>
+      <a class="button" href="/<%= currentCountry.code %>/import">Import contacts</a>
+    </div>
   </header>
 
   <% if (storeKind === "memory") { %>

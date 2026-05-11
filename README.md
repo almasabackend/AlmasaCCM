@@ -13,6 +13,7 @@ This web version supports:
 - Saudi examples: `0551234567`, `551234567`, `966551234567`, `00966551234567`.
 - Automatic detection of subscribed/unsubscribed text in uploaded rows.
 - Suppression logic: unsubscribed or blocked contacts are never exported.
+- Filter My List tool: upload a new CSV/XLSX file and download a clean version with globally unsubscribed/blocked numbers removed, without importing the file into the database.
 - Campaign export capped at 1,000 subscribed contacts.
 - Phone-only export for WhatsApp upload and full contact export for team use.
 - Excel-safe CSV format using `="+971..."` or `="+966..."`.

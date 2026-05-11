@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { COUNTRIES, countryFromCode, countryTabs } from "./countries.mjs";
 import { buildCampaignExport } from "./exportService.mjs";
+import { buildFilteredUpload } from "./filterService.mjs";
 import { runDiagnostics } from "./diagnostics.mjs";
 import { importContactFiles } from "./importService.mjs";
 import { normalizePhone } from "./phone.mjs";
@@ -168,6 +169,31 @@ export function createRouter(store) {
         updateExisting: req.body.updateExisting === "1"
       });
       res.render("import", { result });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:country/filter", (req, res) => {
+    res.render("filter", { error: "" });
+  });
+
+  router.post("/:country/filter", upload.array("files", 10), async (req, res, next) => {
+    try {
+      if (!req.files?.length) {
+        res.render("filter", { error: "Choose at least one CSV or Excel file." });
+        return;
+      }
+      const filtered = await buildFilteredUpload({
+        files: req.files,
+        country: req.country.code,
+        store,
+        format: req.body.format,
+        phoneFormat: req.body.phoneFormat
+      });
+      res.setHeader("Content-Type", filtered.contentType);
+      res.setHeader("Content-Disposition", `attachment; filename="${filtered.filename}"`);
+      res.send(filtered.body);
     } catch (error) {
       next(error);
     }

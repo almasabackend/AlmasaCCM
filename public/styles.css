@@ -172,6 +172,12 @@ button {
   white-space: nowrap;
 }
 
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .danger-button {
   background: var(--red);
 }

@@ -6,6 +6,7 @@ import path from "node:path";
 import ExcelJS from "exceljs";
 
 import { buildCampaignExport } from "../src/exportService.mjs";
+import { buildFilteredUpload } from "../src/filterService.mjs";
 import { importContactFiles } from "../src/importService.mjs";
 import { MemoryStore } from "../src/store.mjs";
 
@@ -64,4 +65,45 @@ test("export caps campaign contacts at 1000 and uses Excel-safe CSV", async () =
   assert.equal(lines.length, 1001);
   assert.equal(lines[0].replace(/^\ufeff/, ""), "phone");
   assert.match(lines[1], /^"=""\+97155/);
+});
+
+test("filters uploaded list against global unsubscribed contacts without importing", async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wcg-filter-"));
+  const filePath = path.join(tempDir, "fresh-list.xlsx");
+  const rows = [
+    { Mobile: "0552605247", "Contact Person": "Suppressed", Company: "Stop Co" },
+    { Mobile: "0501234567", "Contact Person": "Allowed", Company: "Go Co" }
+  ];
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Sheet1");
+  worksheet.addRow(Object.keys(rows[0]));
+  for (const row of rows) worksheet.addRow(Object.values(row));
+  await workbook.xlsx.writeFile(filePath);
+
+  const store = new MemoryStore();
+  await store.upsertImportedContact({
+    country: "AE",
+    phone_e164: "+971552605247",
+    phone_display: "+971 55 260 5247",
+    raw_phone: "0552605247",
+    company_name: "Stop Co",
+    contact_name: "Suppressed",
+    email: "",
+    source_file: "old",
+    source_sheet: "",
+    incoming_status: "unsubscribed"
+  });
+
+  const filtered = await buildFilteredUpload({
+    files: [{ path: filePath, originalname: "fresh-list.xlsx" }],
+    country: "AE",
+    store,
+    format: "csv"
+  });
+
+  const csv = filtered.body.toString("utf8");
+  assert.equal(filtered.summary.kept, 1);
+  assert.equal(filtered.summary.removed_suppressed, 1);
+  assert.doesNotMatch(csv, /\+971552605247/);
+  assert.match(csv, /\+971501234567/);
 });

@@ -1,0 +1,47 @@
+<%- include("partials/header") %>
+  <header class="page-header">
+    <div>
+      <h1>Filter <%= currentCountry.name %> List</h1>
+      <p>Upload a CSV/XLSX list to remove any numbers already unsubscribed or blocked in the global database.</p>
+    </div>
+  </header>
+
+  <% if (error) { %>
+    <div class="alert danger"><%= error %></div>
+  <% } %>
+
+  <section class="panel">
+    <form method="post" enctype="multipart/form-data" class="form-grid">
+      <label>
+        CSV/XLSX files
+        <input type="file" name="files" accept=".csv,.xlsx,.xlsm,.xltx,.xltm" multiple required>
+      </label>
+      <label>
+        Download format
+        <select name="format">
+          <option value="xlsx">XLSX with removed report</option>
+          <option value="csv">Clean CSV only</option>
+        </select>
+      </label>
+      <label>
+        Phone format
+        <select name="phoneFormat">
+          <option value="plain">Plain +971 / +966</option>
+          <option value="excel_safe">Excel-safe phone text</option>
+        </select>
+      </label>
+      <button type="submit">Download filtered list</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>What This Does</h2>
+    <div class="summary-grid">
+      <span>Checks every phone <strong>Global DB</strong></span>
+      <span>Removes unsubscribed <strong>Always</strong></span>
+      <span>Removes blocked <strong>Always</strong></span>
+      <span>Keeps subscribed/new <strong>Clean file</strong></span>
+      <span>Does not import <strong>No DB change</strong></span>
+    </div>
+  </section>
+<%- include("partials/footer") %>
