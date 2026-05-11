@@ -8,9 +8,12 @@
 
   <section class="panel">
     <h2>Database mode</h2>
-    <p><strong><%= storeKind === "mysql" ? "MySQL/MariaDB" : "Temporary memory" %></strong></p>
-    <% if (storeKind !== "mysql") { %>
+    <p><strong><%= storeKind === "mysql" ? "MySQL/MariaDB" : storeKind === "memory-db-error" ? "Temporary memory because database connection failed" : "Temporary memory" %></strong></p>
+    <% if (storeKind === "memory") { %>
       <div class="alert warning">Set `DB_HOST`, `DB_USER`, `DB_PASSWORD`, and `DB_NAME` in Hostinger environment variables before using this app for real contacts.</div>
+    <% } %>
+    <% if (storeKind === "memory-db-error") { %>
+      <div class="alert danger">Database connection failed on startup. Recheck the Hostinger database hostname, username, password, and database name, then restart the app.</div>
     <% } %>
   </section>
 
@@ -19,4 +22,3 @@
     <p>UAE and Saudi Arabia are enabled now. More countries can be added by extending the country configuration.</p>
   </section>
 <%- include("partials/footer") %>
-

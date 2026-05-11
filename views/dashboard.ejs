@@ -7,8 +7,14 @@
     <a class="button" href="/<%= currentCountry.code %>/import">Import contacts</a>
   </header>
 
-  <% if (storeKind !== "mysql") { %>
-    <div class="alert warning">No Hostinger database credentials are set, so this is running with temporary demo memory. Add `.env` database values before production use.</div>
+  <% if (storeKind === "memory") { %>
+    <div class="alert warning">No Hostinger database credentials are set, so this is running with temporary demo memory. Add environment variables before production use.</div>
+  <% } %>
+
+  <% if (storeKind === "memory-db-error") { %>
+    <div class="alert danger">
+      Database connection failed, so this is running in temporary memory mode. Check your Hostinger DB_HOST, DB_USER, DB_PASSWORD, and DB_NAME values.
+    </div>
   <% } %>
 
   <section class="metric-grid">
@@ -24,4 +30,3 @@
     <article class="metric"><span>Last import</span><strong class="small-value"><%= summary.last_import %></strong></article>
   </section>
 <%- include("partials/footer") %>
-

@@ -5,8 +5,16 @@ const STATUS_VALUES = new Set(["subscribed", "unsubscribed", "invalid", "blocked
 export async function createStore() {
   if (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME) {
     const store = new MySqlStore();
-    await store.init();
-    return store;
+    try {
+      await store.init();
+      return store;
+    } catch (error) {
+      console.error("Database connection failed. Falling back to temporary memory mode.", error);
+      const fallback = new MemoryStore();
+      fallback.kind = "memory-db-error";
+      fallback.databaseError = friendlyDatabaseError(error);
+      return fallback;
+    }
   }
   return new MemoryStore();
 }
@@ -379,4 +387,10 @@ function cleanOptional(value) {
 
 function sqlNow() {
   return new Date().toISOString().slice(0, 19).replace("T", " ");
+}
+
+function friendlyDatabaseError(error) {
+  const code = error?.code ? `${error.code}: ` : "";
+  const message = error?.message || "Unknown database connection error";
+  return `${code}${message}`;
 }
