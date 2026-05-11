@@ -31,6 +31,7 @@ export class MySqlStore {
       database: process.env.DB_NAME,
       waitForConnections: true,
       connectionLimit: 10,
+      connectTimeout: 10000,
       namedPlaceholders: true,
       timezone: "Z"
     });

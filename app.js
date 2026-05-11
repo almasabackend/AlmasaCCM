@@ -50,6 +50,14 @@ app.get("/diagnostics", async (_req, res) => {
   res.type("html").send(renderDiagnosticsHtml(diagnostics));
 });
 
+app.get("/", (req, res, next) => {
+  if (storeKind === "booting") {
+    res.redirect("/diagnostics");
+    return;
+  }
+  next();
+});
+
 async function bootMainApp() {
   try {
     const [{ createRouter }, { createStore, MemoryStore }] = await Promise.all([
