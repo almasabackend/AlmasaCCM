@@ -2,16 +2,18 @@ import ExcelJS from "exceljs";
 import { excelSafePhone } from "./phone.mjs";
 import { rowsToCsv } from "./csv.mjs";
 
-export async function buildCampaignExport({ store, country, limit, order = "newest", mode = "phone_only", format = "excel_safe_csv" }) {
-  const rows = await store.contactsForExport({ country, limit, order });
+export async function buildCampaignExport({ store, country, limit, order = "newest", mode = "phone_only", format = "excel_safe_csv", listType = "campaign" }) {
+  const exportStatus = listType === "unsubscribe" ? "unsubscribed" : "subscribed";
+  const rows = await store.contactsForExport({ country, limit, order, status: exportStatus });
   const prepared = rows.map((row) => exportRow(row, mode, format === "excel_safe_csv"));
   const timestamp = new Date().toISOString().slice(0, 16).replace("T", "_").replace(":", "-");
   const extension = format === "xlsx" ? "xlsx" : "csv";
-  const filename = `whatsapp_campaign_contacts_${country}_${timestamp}.${extension}`;
+  const filenamePrefix = listType === "unsubscribe" ? "whatsapp_unsubscribe_list" : "whatsapp_campaign_contacts";
+  const filename = `${filenamePrefix}_${country}_${timestamp}.${extension}`;
 
   if (format === "xlsx") {
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Campaign Contacts");
+    const worksheet = workbook.addWorksheet(listType === "unsubscribe" ? "Unsubscribe List" : "Campaign Contacts");
     const headers = Object.keys(prepared[0] || exportRow({}, mode, false));
     worksheet.addRow(headers);
     for (const row of prepared) worksheet.addRow(headers.map((header) => row[header] || ""));

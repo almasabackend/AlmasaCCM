@@ -195,19 +195,20 @@ export class MySqlStore {
     await this.pool.execute("DELETE FROM contacts WHERE id = :id", { id });
   }
 
-  async contactsForExport({ country, limit, order }) {
+  async contactsForExport({ country, limit, order, status = "subscribed" }) {
     const capped = Math.max(1, Math.min(Number(limit) || 1000, 1000));
     let orderSql = "first_added_at DESC, id DESC";
     if (order === "oldest") orderSql = "first_added_at ASC, id ASC";
     if (order === "random") orderSql = "RAND()";
+    const exportStatus = STATUS_VALUES.has(status) ? status : "subscribed";
     const [rows] = await this.pool.execute(
       `
       SELECT * FROM contacts
-      WHERE country = :country AND status = 'subscribed'
+      WHERE country = :country AND status = :status
       ORDER BY ${orderSql}
       LIMIT :limit
       `,
-      { country, limit: capped }
+      { country, status: exportStatus, limit: capped }
     );
     return rows;
   }
@@ -325,9 +326,10 @@ export class MemoryStore {
     this.contacts = this.contacts.filter((contact) => contact.id !== Number(id));
   }
 
-  async contactsForExport({ country, limit, order }) {
+  async contactsForExport({ country, limit, order, status = "subscribed" }) {
     const capped = Math.max(1, Math.min(Number(limit) || 1000, 1000));
-    const rows = this.contacts.filter((contact) => contact.country === country && contact.status === "subscribed");
+    const exportStatus = STATUS_VALUES.has(status) ? status : "subscribed";
+    const rows = this.contacts.filter((contact) => contact.country === country && contact.status === exportStatus);
     if (order === "oldest") rows.sort((a, b) => String(a.first_added_at).localeCompare(String(b.first_added_at)));
     else if (order === "random") rows.sort(() => Math.random() - 0.5);
     else rows.sort((a, b) => String(b.first_added_at).localeCompare(String(a.first_added_at)));

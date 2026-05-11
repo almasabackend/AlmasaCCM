@@ -1,7 +1,7 @@
 {
   "name": "whatsapp-contact-guard-web",
   "version": "1.0.0",
-  "description": "Country-aware WhatsApp contact and suppression list manager for Hostinger Node.js and MySQL/MariaDB hosting.",
+  "description": "Almasa campaign contact management app with country-aware WhatsApp contact and suppression lists.",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",

@@ -1,4 +1,4 @@
-# WhatsApp Contact Guard Web
+# Almasa Campaign Contact Management
 
 Hostinger-ready Node.js web app for managing WhatsApp promotional contact lists with country-specific suppression lists.
 
@@ -15,6 +15,7 @@ This web version supports:
 - Suppression logic: unsubscribed or blocked contacts are never exported.
 - Filter My List tool: upload a new CSV/XLSX file and download a clean version with globally unsubscribed/blocked numbers removed, without importing the file into the database.
 - Campaign export capped at 1,000 subscribed contacts.
+- Unsubscribe-only export mode for downloading suppressed opt-out contacts.
 - Phone-only export for WhatsApp upload and full contact export for team use.
 - Excel-safe CSV format using `="+971..."` or `="+966..."`.
 

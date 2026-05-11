@@ -2,7 +2,7 @@
   <header class="page-header">
     <div>
       <h1>Export <%= currentCountry.name %> Campaign List</h1>
-      <p>Only subscribed contacts are exported. Unsubscribed, blocked, and invalid contacts are always excluded.</p>
+      <p>Export subscribed campaign contacts or an unsubscribe-only list. Campaign exports never include unsubscribed, blocked, or invalid contacts.</p>
     </div>
   </header>
 
@@ -19,6 +19,12 @@
     <form method="post" class="form-grid">
       <label>Maximum contacts
         <input type="number" name="limit" min="1" max="1000" value="1000">
+      </label>
+      <label>List type
+        <select name="listType">
+          <option value="campaign">Campaign contacts only</option>
+          <option value="unsubscribe">Unsubscribe list only</option>
+        </select>
       </label>
       <label>Order
         <select name="order">
@@ -40,8 +46,7 @@
           <option value="xlsx">XLSX</option>
         </select>
       </label>
-      <button type="submit">Download campaign export</button>
+      <button type="submit">Download export</button>
     </form>
   </section>
 <%- include("partials/footer") %>
-

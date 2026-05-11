@@ -216,7 +216,8 @@ export function createRouter(store) {
         limit: req.body.limit,
         order: req.body.order,
         mode: req.body.mode,
-        format: req.body.format
+        format: req.body.format,
+        listType: req.body.listType
       });
       res.setHeader("Content-Type", exportFile.contentType);
       res.setHeader("Content-Disposition", `attachment; filename="${exportFile.filename}"`);

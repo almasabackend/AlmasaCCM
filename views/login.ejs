@@ -3,12 +3,13 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login - WhatsApp Contact Guard</title>
+    <title>Login - Almasa Campaign Contact Management</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body class="login-page">
     <main class="login-panel">
-      <h1>WhatsApp Contact Guard</h1>
+      <img class="login-logo" src="/assets/almasa-logo.svg" alt="Almasa">
+      <h1>Almasa Campaign Contact Management</h1>
       <p>Sign in with your Almasa account to manage contacts.</p>
       <% if (error) { %><div class="alert danger"><%= error %></div><% } %>
       <form method="post" action="/login">

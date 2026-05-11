@@ -67,6 +67,47 @@ test("export caps campaign contacts at 1000 and uses Excel-safe CSV", async () =
   assert.match(lines[1], /^"=""\+97155/);
 });
 
+test("exports unsubscribe list only", async () => {
+  const store = new MemoryStore();
+  await store.upsertImportedContact({
+    country: "AE",
+    phone_e164: "+971552605247",
+    phone_display: "+971 55 260 5247",
+    raw_phone: "0552605247",
+    company_name: "Stop Co",
+    contact_name: "Suppressed",
+    email: "",
+    source_file: "unsubscribe.xlsx",
+    source_sheet: "",
+    incoming_status: "unsubscribed"
+  });
+  await store.upsertImportedContact({
+    country: "AE",
+    phone_e164: "+971501234567",
+    phone_display: "+971 50 123 4567",
+    raw_phone: "0501234567",
+    company_name: "Go Co",
+    contact_name: "Allowed",
+    email: "",
+    source_file: "contacts.xlsx",
+    source_sheet: "",
+    incoming_status: "subscribed"
+  });
+
+  const exportFile = await buildCampaignExport({
+    store,
+    country: "AE",
+    limit: 1000,
+    format: "plain_csv",
+    listType: "unsubscribe"
+  });
+
+  const csv = exportFile.body.toString("utf8");
+  assert.match(exportFile.filename, /^whatsapp_unsubscribe_list_AE_/);
+  assert.match(csv, /\+971552605247/);
+  assert.doesNotMatch(csv, /\+971501234567/);
+});
+
 test("filters uploaded list against global unsubscribed contacts without importing", async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wcg-filter-"));
   const filePath = path.join(tempDir, "fresh-list.xlsx");

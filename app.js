@@ -266,7 +266,7 @@ function renderDiagnosticsHtml(diagnostics) {
 }
 
 app.listen(port, "0.0.0.0", () => {
-  console.log(`WhatsApp Contact Guard web app running on port ${port}`);
+  console.log(`Almasa Campaign Contact Management web app running on port ${port}`);
 });
 
 bootMainApp();
