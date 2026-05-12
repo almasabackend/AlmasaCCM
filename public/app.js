@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupDropZones();
   setupUploadProgressForms();
   setupNavigationPreloader();
+  setupAutoHidePreloader();
   setupDelayedRedirects();
 });
 
@@ -212,4 +213,21 @@ function setupDelayedRedirects() {
       window.location.assign(target);
     }, 650);
   });
+}
+
+function setupAutoHidePreloader() {
+  const preloader = document.querySelector("[data-page-preloader]");
+  if (!preloader || preloader.hidden) return;
+  const hide = () => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        preloader.hidden = true;
+      });
+    });
+  };
+  if (document.readyState === "complete") {
+    hide();
+    return;
+  }
+  window.addEventListener("load", hide, { once: true });
 }

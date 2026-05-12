@@ -28,6 +28,7 @@ export function createRouter(store) {
     res.locals.storeKind = store.kind;
     res.locals.adminEnabled = authConfigured();
     res.locals.currentUser = req.session.user || null;
+    res.locals.keepPagePreloader = false;
     res.locals.path = req.path;
     next();
   });
@@ -98,21 +99,21 @@ export function createRouter(store) {
     const countryPath = `/${req.country.code}/contacts`;
     const mode = req.query.mode || "all";
     const loading = {
-      targetUrl: `${countryPath}?view=all`
+      targetUrl: `${countryPath}?view=all&loading=1`
     };
 
     if (mode === "groups") {
-      loading.targetUrl = `${countryPath}#contact-groups`;
+      loading.targetUrl = `${countryPath}?loading=1#contact-groups`;
     }
 
     if (mode === "subscribed" || mode === "unsubscribed") {
-      loading.targetUrl = `${countryPath}?status=${mode}`;
+      loading.targetUrl = `${countryPath}?status=${mode}&loading=1`;
     }
 
     if (mode === "group") {
       const groupId = String(req.query.group || "").replace(/\D/g, "");
       if (groupId) {
-        loading.targetUrl = `${countryPath}?group=${groupId}`;
+        loading.targetUrl = `${countryPath}?group=${groupId}&loading=1`;
       }
     }
 
@@ -123,6 +124,7 @@ export function createRouter(store) {
 
   router.get("/:country/contacts", async (req, res, next) => {
     try {
+      res.locals.keepPagePreloader = req.query.loading === "1";
       const filters = {
         country: req.country.code,
         search: req.query.search || "",
