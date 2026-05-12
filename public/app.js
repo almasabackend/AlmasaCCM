@@ -51,7 +51,7 @@ function setupUploadProgressForms() {
   });
 }
 
-function submitWithProgress(form) {
+async function submitWithProgress(form) {
   const progress = document.getElementById(form.dataset.progressTarget || "");
   const state = progress ? progressState(progress) : null;
   const xhr = new XMLHttpRequest();
@@ -83,6 +83,20 @@ function submitWithProgress(form) {
   }
   state?.set(3, "Preparing upload.");
 
+  let body;
+  let contentType = "";
+  try {
+    if (hasFileInputs(form)) {
+      body = await jsonUploadBody(form, setProgress);
+      contentType = "application/json";
+    } else {
+      body = new FormData(form);
+    }
+  } catch {
+    fallbackToNativeUpload(form, state, current, "Could not read the selected file. Retrying with a standard form upload.");
+    return;
+  }
+
   xhr.upload.addEventListener("progress", (event) => {
     if (!event.lengthComputable) {
       setProgress(25, "Uploading file.");
@@ -113,7 +127,41 @@ function submitWithProgress(form) {
 
   xhr.open((form.method || "POST").toUpperCase(), form.getAttribute("action") || window.location.pathname);
   xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-  xhr.send(new FormData(form));
+  if (contentType) xhr.setRequestHeader("Content-Type", contentType);
+  xhr.send(body);
+}
+
+function hasFileInputs(form) {
+  return [...form.querySelectorAll('input[type="file"]')].some((input) => input.files?.length);
+}
+
+async function jsonUploadBody(form, setProgress) {
+  const payload = { uploadedFiles: [] };
+  const fields = new FormData(form);
+  for (const [key, value] of fields.entries()) {
+    if (value instanceof File) continue;
+    payload[key] = value;
+  }
+  const files = [...form.querySelectorAll('input[type="file"]')].flatMap((input) => [...(input.files || [])]);
+  for (const [index, file] of files.entries()) {
+    setProgress(5 + Math.round((index / Math.max(files.length, 1)) * 20), `Reading ${file.name}.`);
+    payload.uploadedFiles.push({
+      name: file.name,
+      type: file.type || "",
+      data: await readFileAsDataUrl(file)
+    });
+  }
+  setProgress(28, "File ready. Uploading to server.");
+  return JSON.stringify(payload);
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(reader.result));
+    reader.addEventListener("error", () => reject(reader.error));
+    reader.readAsDataURL(file);
+  });
 }
 
 function fallbackToNativeUpload(form, state, current, message) {

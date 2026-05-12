@@ -2,6 +2,7 @@ import express from "express";
 import multer from "multer";
 import path from "node:path";
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { COUNTRIES, countryFromCode, countryTabs, isAllCountry } from "./countries.mjs";
@@ -14,7 +15,8 @@ import { authenticateUser, authConfigured } from "./auth.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const upload = multer({ dest: path.join(__dirname, "..", "uploads") });
+const uploadDir = path.join(__dirname, "..", "uploads");
+const upload = multer({ dest: uploadDir });
 const filterDownloads = new Map();
 const importPreviews = new Map();
 
@@ -198,12 +200,13 @@ export function createRouter(store) {
         res.redirect("/AE/import");
         return;
       }
-      if (!req.files?.length) {
+      const files = await uploadedFilesFromRequest(req);
+      if (!files.length) {
         res.render("import", { result: { error: "Choose at least one CSV or Excel file." }, preview: null });
         return;
       }
       const preview = await previewContactFiles({
-        files: req.files,
+        files,
         country: req.country.code,
         store,
         updateExisting: req.body.updateExisting === "1"
@@ -267,12 +270,13 @@ export function createRouter(store) {
         res.redirect("/AE/filter");
         return;
       }
-      if (!req.files?.length) {
+      const files = await uploadedFilesFromRequest(req);
+      if (!files.length) {
         res.render("filter", { error: "Choose at least one CSV or Excel file.", result: null });
         return;
       }
       const filtered = await buildFilteredUpload({
-        files: req.files,
+        files,
         country: req.country.code,
         store,
         format: req.body.format,
@@ -375,6 +379,29 @@ function rememberFilterDownload(country, filtered) {
   });
   cleanupFilterDownloads();
   return token;
+}
+
+async function uploadedFilesFromRequest(req) {
+  if (req.files?.length) return req.files;
+  if (!Array.isArray(req.body?.uploadedFiles)) return [];
+  await fs.mkdir(uploadDir, { recursive: true });
+  const files = [];
+  for (const file of req.body.uploadedFiles) {
+    const originalname = cleanUploadName(file?.name);
+    const base64 = String(file?.data || "").includes(",") ? String(file.data).split(",").pop() : String(file?.data || "");
+    if (!originalname || !base64) continue;
+    const extension = path.extname(originalname).toLowerCase();
+    if (![".csv", ".xlsx", ".xlsm", ".xltx", ".xltm"].includes(extension)) continue;
+    const filePath = path.join(uploadDir, `json-${crypto.randomBytes(12).toString("hex")}${extension}`);
+    await fs.writeFile(filePath, Buffer.from(base64, "base64"));
+    files.push({ path: filePath, originalname });
+  }
+  return files;
+}
+
+function cleanUploadName(name) {
+  const clean = path.basename(String(name || "").replace(/[/\\]/g, ""));
+  return clean.length > 180 ? clean.slice(-180) : clean;
 }
 
 function rememberImportPreview(country, data) {
