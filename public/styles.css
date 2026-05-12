@@ -340,6 +340,8 @@ button:disabled {
 .confirm-panel {
   border-color: #f1d590;
   background: #fffdf6;
+  display: grid;
+  gap: 18px;
 }
 
 .confirm-header {
@@ -347,7 +349,16 @@ button:disabled {
   justify-content: space-between;
   gap: 18px;
   align-items: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 0;
+}
+
+.confirm-header > div {
+  min-width: 0;
+}
+
+.confirm-header .status {
+  flex: 0 0 auto;
+  margin-top: 2px;
 }
 
 .panel {
@@ -610,6 +621,25 @@ textarea {
   color: var(--ink);
   font-size: 22px;
   margin-top: 4px;
+}
+
+.import-confirm-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.import-confirm-grid span {
+  min-height: 92px;
+  display: grid;
+  align-content: space-between;
+  gap: 10px;
+}
+
+.confirm-panel .alert {
+  margin: 0;
+}
+
+.confirm-panel .result-actions {
+  margin-top: 2px;
 }
 
 .progress-panel {
