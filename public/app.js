@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   setupDropZones();
   setupUploadProgressForms();
+  setupNavigationPreloader();
 });
 
 function setupDropZones() {
@@ -141,4 +142,15 @@ function progressState(progress) {
       steps.forEach((step, index) => step.classList.toggle("active", index <= stepIndex));
     }
   };
+}
+
+function setupNavigationPreloader() {
+  const preloader = document.querySelector("[data-page-preloader]");
+  if (!preloader) return;
+  document.querySelectorAll("[data-show-preloader]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+      preloader.hidden = false;
+    });
+  });
 }

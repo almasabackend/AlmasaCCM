@@ -298,21 +298,22 @@ export class MySqlStore {
   }
 
   async contactsForExport({ country, limit, order, status = "subscribed" }) {
-    const capped = Math.max(1, Math.min(Number(limit) || 1000, 1000));
+    const requestedLimit = normalizeExportLimit(limit);
     let orderSql = "first_added_at DESC, id DESC";
     if (order === "oldest") orderSql = "first_added_at ASC, id ASC";
     if (order === "random") orderSql = "RAND()";
     const exportStatus = STATUS_VALUES.has(status) ? status : "subscribed";
     const countryClause = isAllCountryCode(country) ? "" : "country = :country AND";
     const params = isAllCountryCode(country)
-      ? { status: exportStatus, limit: capped }
-      : { country, status: exportStatus, limit: capped };
+      ? { status: exportStatus }
+      : { country, status: exportStatus };
+    if (requestedLimit) params.limit = requestedLimit;
     const [rows] = await this.pool.execute(
       `
       SELECT * FROM contacts
       WHERE ${countryClause} status = :status
       ORDER BY ${orderSql}
-      LIMIT :limit
+      ${requestedLimit ? "LIMIT :limit" : ""}
       `,
       params
     );
@@ -585,13 +586,13 @@ export class MemoryStore {
   }
 
   async contactsForExport({ country, limit, order, status = "subscribed" }) {
-    const capped = Math.max(1, Math.min(Number(limit) || 1000, 1000));
+    const requestedLimit = normalizeExportLimit(limit);
     const exportStatus = STATUS_VALUES.has(status) ? status : "subscribed";
     const rows = this.contacts.filter((contact) => (isAllCountryCode(country) || contact.country === country) && contact.status === exportStatus);
     if (order === "oldest") rows.sort((a, b) => String(a.first_added_at).localeCompare(String(b.first_added_at)));
     else if (order === "random") rows.sort(() => Math.random() - 0.5);
     else rows.sort((a, b) => String(b.first_added_at).localeCompare(String(a.first_added_at)));
-    return rows.slice(0, capped);
+    return requestedLimit ? rows.slice(0, requestedLimit) : rows;
   }
 
   async addImportHistory(summary) {
@@ -663,6 +664,12 @@ function normalizeSummary(row = {}, lastImport) {
     available_for_next_export: Math.min(subscribed, 1000),
     last_import: lastImport || "Never"
   };
+}
+
+function normalizeExportLimit(limit) {
+  const parsed = Number(limit);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.floor(parsed);
 }
 
 function detailsToUpdate(existing, record, updateExisting) {

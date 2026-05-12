@@ -43,7 +43,7 @@ test("imports subscribe and unsubscribe rows from Excel and suppresses exports",
   assert.doesNotMatch(csv, /\+971501234567/);
 });
 
-test("export caps campaign contacts at 1000 and uses Excel-safe CSV", async () => {
+test("export no longer caps campaign contacts at 1000 and uses Excel-safe CSV", async () => {
   const store = new MemoryStore();
   for (let index = 0; index < 1005; index += 1) {
     await store.upsertImportedContact({
@@ -62,7 +62,7 @@ test("export caps campaign contacts at 1000 and uses Excel-safe CSV", async () =
 
   const exportFile = await buildCampaignExport({ store, country: "AE", limit: 5000, format: "excel_safe_csv" });
   const lines = exportFile.body.toString("utf8").trim().split(/\r?\n/);
-  assert.equal(lines.length, 1001);
+  assert.equal(lines.length, 1006);
   assert.equal(lines[0].replace(/^\ufeff/, ""), "phone");
   assert.match(lines[1], /^"=""\+97155/);
 });

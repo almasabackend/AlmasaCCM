@@ -65,6 +65,10 @@ export function createRouter(store) {
   router.use("/:country", (req, res, next) => {
     const code = String(req.params.country || "AE").toUpperCase();
     if (!COUNTRIES[code]) {
+      if (req.method === "GET" || req.method === "HEAD") {
+        res.redirect("/AE/dashboard");
+        return;
+      }
       res.status(404).send("Unsupported country");
       return;
     }
@@ -342,6 +346,14 @@ export function createRouter(store) {
 
   router.get("/:country/settings", (req, res) => {
     res.render("settings");
+  });
+
+  router.use((req, res, next) => {
+    if (req.method === "GET" || req.method === "HEAD") {
+      res.redirect("/AE/dashboard");
+      return;
+    }
+    next();
   });
 
   router.use((error, _req, res, _next) => {
