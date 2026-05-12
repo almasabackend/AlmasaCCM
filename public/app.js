@@ -59,6 +59,7 @@ async function submitWithProgress(form) {
   const xhr = new XMLHttpRequest();
   let processingTimer = null;
   let current = 0;
+  const isFileUpload = hasFileInputs(form);
 
   const setProgress = (value, message) => {
     current = Math.max(current, Math.min(value, 99));
@@ -88,14 +89,14 @@ async function submitWithProgress(form) {
   let body;
   let contentType = "";
   try {
-    if (hasFileInputs(form)) {
+    if (isFileUpload) {
       body = await jsonUploadBody(form, setProgress);
       contentType = "application/json";
     } else {
       body = new FormData(form);
     }
   } catch {
-    fallbackToNativeUpload(form, state, current, "Could not read the selected file. Retrying with a standard form upload.");
+    stopUpload(form, state, current, "Could not read the selected file. Please choose the file again and retry.");
     return;
   }
 
@@ -113,7 +114,11 @@ async function submitWithProgress(form) {
   xhr.addEventListener("load", () => {
     clearInterval(processingTimer);
     if (xhr.status < 200 || xhr.status >= 400) {
-      fallbackToNativeUpload(form, state, current, `Upload failed with HTTP ${xhr.status}. Retrying with a standard form upload.`);
+      if (isFileUpload) {
+        stopUpload(form, state, current, `Upload failed with HTTP ${xhr.status}. Please retry with a smaller file or split the list into parts.`);
+      } else {
+        fallbackToNativeUpload(form, state, current, `Request failed with HTTP ${xhr.status}. Retrying with a standard form submit.`);
+      }
       return;
     }
     setProgress(100, "Done.");
@@ -124,7 +129,11 @@ async function submitWithProgress(form) {
   });
   xhr.addEventListener("error", () => {
     clearInterval(processingTimer);
-    fallbackToNativeUpload(form, state, current, "Upload connection failed. Retrying with a standard form upload.");
+    if (isFileUpload) {
+      stopUpload(form, state, current, "Upload connection failed. Please retry the upload.");
+    } else {
+      fallbackToNativeUpload(form, state, current, "Request connection failed. Retrying with a standard form submit.");
+    }
   });
 
   xhr.open((form.method || "POST").toUpperCase(), form.getAttribute("action") || window.location.pathname);
@@ -169,11 +178,35 @@ function readFileAsDataUrl(file) {
 function fallbackToNativeUpload(form, state, current, message) {
   state?.set(current || 0, message);
   form.dataset.fallbackSubmit = "1";
+  restoreFormButtons(form);
+  setTimeout(() => form.submit(), 450);
+}
+
+function stopUpload(form, state, current, message) {
+  state?.set(current || 0, message);
+  restoreFormButtons(form);
+  showUploadError(form, message);
+}
+
+function restoreFormButtons(form) {
   form.querySelectorAll("button").forEach((button) => {
     button.disabled = false;
     button.textContent = button.dataset.originalText || "Submit";
   });
-  setTimeout(() => form.submit(), 450);
+}
+
+function showUploadError(form, message) {
+  const progress = document.getElementById(form.dataset.progressTarget || "");
+  if (!progress) return;
+  progress.hidden = false;
+  progress.classList.remove("upload-complete");
+  let alert = progress.querySelector(".upload-error");
+  if (!alert) {
+    alert = document.createElement("div");
+    alert.className = "alert danger upload-error";
+    progress.appendChild(alert);
+  }
+  alert.textContent = message;
 }
 
 function progressState(progress) {
