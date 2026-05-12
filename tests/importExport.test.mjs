@@ -252,6 +252,34 @@ test("filter removes a whole row if any phone in that row is suppressed", async 
   assert.doesNotMatch(csv, /\+971501234567/);
 });
 
+test("filter keeps rows that have a valid phone even if another value is invalid or duplicate", async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wcg-filter-mixed-"));
+  const filePath = path.join(tempDir, "mixed-quality.xlsx");
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Sheet1");
+  worksheet.addRow(["Mobile", "Contact Person", "Company"]);
+  worksheet.addRow(["0552605247", "First Row", "Alpha Co"]);
+  worksheet.addRow(["0552605247 / 0501234567 / 12345678", "Mixed Valid Row", "Beta Co"]);
+  await workbook.xlsx.writeFile(filePath);
+
+  const store = new MemoryStore();
+  const filtered = await buildFilteredUpload({
+    files: [{ path: filePath, originalname: "mixed-quality.xlsx" }],
+    country: "AE",
+    store,
+    format: "csv"
+  });
+
+  const csv = filtered.body.toString("utf8");
+  assert.equal(filtered.summary.kept, 2);
+  assert.equal(filtered.summary.removed_total, 0);
+  assert.equal(filtered.summary.duplicates, 1);
+  assert.equal(filtered.summary.invalid_numbers, 1);
+  assert.match(csv, /First Row/);
+  assert.match(csv, /Mixed Valid Row/);
+  assert.match(csv, /\+971501234567/);
+});
+
 test("contact import preview requires confirmation before database writes", async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wcg-preview-"));
   const filePath = path.join(tempDir, "preview.xlsx");

@@ -27,28 +27,25 @@ export async function buildFilteredUpload({ files, country, store, format = "xls
           continue;
         }
 
-        const rowPhones = [];
-        let removeWholeRow = null;
+        const normalizedCandidates = [];
+        const invalidReports = [];
         for (const candidate of candidates) {
           summary.numbers_found += 1;
           const normalized = normalizePhone(candidate, country);
           if (!normalized.valid || !normalized.e164) {
             summary.invalid_numbers += 1;
-            removeWholeRow ||= reportRow({ row, file, sheetName, index, rawPhone: candidate, result: "Invalid number", reason: normalized.reason });
+            invalidReports.push(reportRow({ row, file, sheetName, index, rawPhone: candidate, result: "Invalid number", reason: normalized.reason }));
             continue;
           }
+          normalizedCandidates.push({ candidate, normalized });
+        }
 
-          if (seen.has(normalized.e164)) {
-            summary.duplicates += 1;
-            removeWholeRow ||= reportRow({ row, file, sheetName, index, rawPhone: candidate, phone: normalized.e164, result: "Duplicate in uploaded file" });
-            continue;
-          }
-          seen.add(normalized.e164);
-
+        let suppressedReport = null;
+        for (const { candidate, normalized } of normalizedCandidates) {
           const existing = await store.findContactByPhone(normalized.e164);
           if (existing && ["unsubscribed", "blocked"].includes(existing.status)) {
             summary.removed_suppressed += 1;
-            removeWholeRow ||= reportRow({
+            suppressedReport ||= reportRow({
               row,
               file,
               sheetName,
@@ -58,14 +55,30 @@ export async function buildFilteredUpload({ files, country, store, format = "xls
               result: existing.status === "blocked" ? "Blocked in global database" : "Unsubscribed in global database",
               reason: "Skipped from filtered list"
             });
+          }
+        }
+
+        if (suppressedReport) {
+          removedRows.push(suppressedReport);
+          continue;
+        }
+
+        const rowPhones = [];
+        const duplicateReports = [];
+        const rowSeen = new Set();
+        for (const { candidate, normalized } of normalizedCandidates) {
+          if (seen.has(normalized.e164) || rowSeen.has(normalized.e164)) {
+            summary.duplicates += 1;
+            duplicateReports.push(reportRow({ row, file, sheetName, index, rawPhone: candidate, phone: normalized.e164, result: "Duplicate in uploaded file" }));
             continue;
           }
-
+          rowSeen.add(normalized.e164);
+          seen.add(normalized.e164);
           rowPhones.push(normalized);
         }
 
-        if (removeWholeRow) {
-          removedRows.push(removeWholeRow);
+        if (!rowPhones.length) {
+          removedRows.push(duplicateReports[0] || invalidReports[0] || reportRow({ row, file, sheetName, index, result: "No usable phone number found" }));
           continue;
         }
 
@@ -78,7 +91,7 @@ export async function buildFilteredUpload({ files, country, store, format = "xls
     await safeUnlink(file.path);
   }
 
-  summary.removed_total = summary.removed_suppressed + summary.duplicates + summary.invalid_numbers + summary.rows_without_phone;
+  summary.removed_total = removedRows.length;
   return buildDownload({ summary, keptRows, removedRows, format });
 }
 
