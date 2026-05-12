@@ -2,18 +2,7 @@
   <section class="loading-page" data-delayed-redirect data-target="<%= targetUrl %>">
     <div class="loading-card">
       <span class="loader-ring large" aria-hidden="true"></span>
-      <div>
-        <p class="eyebrow"><span class="page-flag"><%= currentCountry.flag %></span><%= eyebrow %></p>
-        <h1><%= title %></h1>
-        <p><%= copy %></p>
-      </div>
-      <div class="loading-progress" aria-hidden="true"><span></span></div>
-      <div class="loading-steps">
-        <span>Opening database</span>
-        <span>Building table</span>
-        <span>Loading contacts</span>
-      </div>
-      <a class="secondary-button" href="<%= targetUrl %>">Open now</a>
+      <h1>Loading contacts</h1>
     </div>
   </section>
 <%- include("partials/footer") %>
