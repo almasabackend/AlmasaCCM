@@ -32,7 +32,7 @@
     </form>
     <% if (groups.length) { %>
       <div class="chip-row">
-        <a class="chip <%= !filters.groupId ? "active" : "" %>" href="/<%= currentCountry.code %>/contacts">View all</a>
+        <a class="chip <%= !filters.groupId ? "active" : "" %>" href="/<%= currentCountry.code %>/contacts/loading" data-show-preloader>View all</a>
         <% groups.forEach((group) => { %>
           <a class="chip <%= String(filters.groupId) === String(group.id) ? "active" : "" %>" href="/<%= currentCountry.code %>/contacts?group=<%= group.id %>">
             <%= group.name %> <span><%= group.contact_count %></span>

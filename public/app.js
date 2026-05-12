@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupDropZones();
   setupUploadProgressForms();
   setupNavigationPreloader();
+  setupDelayedRedirects();
 });
 
 function setupDropZones() {
@@ -200,5 +201,15 @@ function setupNavigationPreloader() {
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
       preloader.hidden = false;
     });
+  });
+}
+
+function setupDelayedRedirects() {
+  document.querySelectorAll("[data-delayed-redirect]").forEach((element) => {
+    const target = element.dataset.target;
+    if (!target) return;
+    window.setTimeout(() => {
+      window.location.assign(target);
+    }, 650);
   });
 }

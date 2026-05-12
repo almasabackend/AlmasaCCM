@@ -25,7 +25,7 @@
           <a href="/<%= currentCountry.code %>/dashboard"><span class="flag"><%= currentCountry.flag %></span>Dashboard</a>
           <details class="nav-group" <%= path.includes("/contacts") ? "open" : "" %>>
             <summary>Contacts</summary>
-            <a href="/<%= currentCountry.code %>/contacts" data-show-preloader>View all</a>
+            <a href="/<%= currentCountry.code %>/contacts/loading" data-show-preloader>View all</a>
             <a href="/<%= currentCountry.code %>/contacts#contact-groups">List Group</a>
             <a href="/<%= currentCountry.code %>/contacts?status=subscribed">Subscribed</a>
             <a href="/<%= currentCountry.code %>/contacts?status=unsubscribed">Unsubscribed</a>

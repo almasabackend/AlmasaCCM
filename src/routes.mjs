@@ -94,6 +94,12 @@ export function createRouter(store) {
     }
   });
 
+  router.get("/:country/contacts/loading", (req, res) => {
+    res.render("contacts_loading", {
+      targetUrl: `/${req.country.code}/contacts?view=all`
+    });
+  });
+
   router.get("/:country/contacts", async (req, res, next) => {
     try {
       const filters = {
