@@ -7,7 +7,7 @@
   </header>
 
   <section class="panel">
-    <form method="post" enctype="multipart/form-data" class="upload-form" data-upload-form data-progress-target="import-progress">
+    <form method="post" action="/<%= currentCountry.code %>/import" enctype="multipart/form-data" class="upload-form" data-upload-form data-progress-target="import-progress">
       <div class="form-grid">
         <label class="drop-zone">
           <input type="file" name="files" accept=".csv,.xlsx,.xlsm,.xltx,.xltm" multiple required>

@@ -11,7 +11,7 @@
   <% } %>
 
   <section class="panel">
-    <form id="filter-form" method="post" enctype="multipart/form-data" class="form-grid upload-form" data-upload-form data-progress-target="filter-progress">
+    <form id="filter-form" method="post" action="/<%= currentCountry.code %>/filter" enctype="multipart/form-data" class="form-grid upload-form" data-upload-form data-progress-target="filter-progress">
       <label class="drop-zone">
         <input type="file" name="files" accept=".csv,.xlsx,.xlsm,.xltx,.xltm" multiple required>
         <span class="drop-title">Drop CSV/XLSX files here</span>

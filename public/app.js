@@ -43,6 +43,7 @@ function setupUploadProgressForms() {
   document.querySelectorAll("[data-upload-form]").forEach((form) => {
     form.addEventListener("submit", (event) => {
       if (!window.XMLHttpRequest || !window.FormData) return;
+      if (form.dataset.fallbackSubmit === "1") return;
       event.preventDefault();
       submitWithProgress(form);
     });
@@ -94,6 +95,10 @@ function submitWithProgress(form) {
   });
   xhr.addEventListener("load", () => {
     clearInterval(processingTimer);
+    if (xhr.status < 200 || xhr.status >= 400) {
+      fallbackToNativeUpload(form, state, current, `Upload failed with HTTP ${xhr.status}. Retrying with a standard form upload.`);
+      return;
+    }
     setProgress(100, "Done.");
     progress?.classList.add("upload-complete");
     document.open();
@@ -102,15 +107,22 @@ function submitWithProgress(form) {
   });
   xhr.addEventListener("error", () => {
     clearInterval(processingTimer);
-    state?.set(current || 0, "Upload failed. Please try again.");
-    form.querySelectorAll("button").forEach((button) => {
-      button.disabled = false;
-      button.textContent = button.dataset.originalText || "Submit";
-    });
+    fallbackToNativeUpload(form, state, current, "Upload connection failed. Retrying with a standard form upload.");
   });
 
-  xhr.open((form.method || "POST").toUpperCase(), form.action || window.location.href);
+  xhr.open((form.method || "POST").toUpperCase(), form.getAttribute("action") || window.location.pathname);
+  xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
   xhr.send(new FormData(form));
+}
+
+function fallbackToNativeUpload(form, state, current, message) {
+  state?.set(current || 0, message);
+  form.dataset.fallbackSubmit = "1";
+  form.querySelectorAll("button").forEach((button) => {
+    button.disabled = false;
+    button.textContent = button.dataset.originalText || "Submit";
+  });
+  setTimeout(() => form.submit(), 450);
 }
 
 function progressState(progress) {
