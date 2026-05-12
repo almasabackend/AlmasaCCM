@@ -25,14 +25,14 @@
           <a href="/<%= currentCountry.code %>/dashboard"><span class="flag"><%= currentCountry.flag %></span>Dashboard</a>
           <details class="nav-group" <%= path.includes("/contacts") ? "open" : "" %>>
             <summary>Contacts</summary>
-            <a href="/<%= currentCountry.code %>/contacts/loading" data-show-preloader>View all</a>
-            <a href="/<%= currentCountry.code %>/contacts#contact-groups">List Group</a>
-            <a href="/<%= currentCountry.code %>/contacts?status=subscribed">Subscribed</a>
-            <a href="/<%= currentCountry.code %>/contacts?status=unsubscribed">Unsubscribed</a>
+            <a href="/<%= currentCountry.code %>/contacts/loading?mode=all" data-show-preloader>View all</a>
+            <a href="/<%= currentCountry.code %>/contacts/loading?mode=groups" data-show-preloader>List Group</a>
+            <a href="/<%= currentCountry.code %>/contacts/loading?mode=subscribed" data-show-preloader>Subscribed</a>
+            <a href="/<%= currentCountry.code %>/contacts/loading?mode=unsubscribed" data-show-preloader>Unsubscribed</a>
             <% if (typeof contactGroups !== "undefined" && contactGroups.length) { %>
               <span class="nav-label">Groups</span>
               <% contactGroups.forEach((group) => { %>
-                <a href="/<%= currentCountry.code %>/contacts?group=<%= group.id %>"><%= group.name %> <small><%= group.contact_count %></small></a>
+                <a href="/<%= currentCountry.code %>/contacts/loading?mode=group&group=<%= group.id %>" data-show-preloader><%= group.name %> <small><%= group.contact_count %></small></a>
               <% }) %>
             <% } %>
           </details>

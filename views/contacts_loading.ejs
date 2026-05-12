@@ -3,9 +3,9 @@
     <div class="loading-card">
       <span class="loader-ring large" aria-hidden="true"></span>
       <div>
-        <p class="eyebrow"><span class="page-flag"><%= currentCountry.flag %></span>View All</p>
-        <h1>Loading <%= currentCountry.name %> Contacts</h1>
-        <p>Preparing the full contact table. Large lists can take a moment, so this page keeps the app responsive while the database view opens.</p>
+        <p class="eyebrow"><span class="page-flag"><%= currentCountry.flag %></span><%= eyebrow %></p>
+        <h1><%= title %></h1>
+        <p><%= copy %></p>
       </div>
       <div class="loading-progress" aria-hidden="true"><span></span></div>
       <div class="loading-steps">
@@ -13,7 +13,7 @@
         <span>Building table</span>
         <span>Loading contacts</span>
       </div>
-      <a class="secondary-button" href="/<%= currentCountry.code %>/contacts">Open now</a>
+      <a class="secondary-button" href="<%= targetUrl %>">Open now</a>
     </div>
   </section>
 <%- include("partials/footer") %>

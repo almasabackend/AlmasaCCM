@@ -95,8 +95,42 @@ export function createRouter(store) {
   });
 
   router.get("/:country/contacts/loading", (req, res) => {
+    const countryPath = `/${req.country.code}/contacts`;
+    const mode = req.query.mode || "all";
+    const loading = {
+      eyebrow: "View All",
+      title: `Loading ${req.country.name} Contacts`,
+      copy: "Preparing the full contact table. Large lists can take a moment, so this page keeps the app responsive while the database view opens.",
+      targetUrl: `${countryPath}?view=all`
+    };
+
+    if (mode === "groups") {
+      loading.eyebrow = "List Group";
+      loading.title = `Loading ${req.country.name} Contact Groups`;
+      loading.copy = "Opening the group management area and preparing the saved contact groups.";
+      loading.targetUrl = `${countryPath}#contact-groups`;
+    }
+
+    if (mode === "subscribed" || mode === "unsubscribed") {
+      const label = mode.charAt(0).toUpperCase() + mode.slice(1);
+      loading.eyebrow = label;
+      loading.title = `Loading ${label} Contacts`;
+      loading.copy = `Filtering the ${req.country.name} contact database for ${mode} records.`;
+      loading.targetUrl = `${countryPath}?status=${mode}`;
+    }
+
+    if (mode === "group") {
+      const groupId = String(req.query.group || "").replace(/\D/g, "");
+      if (groupId) {
+        loading.eyebrow = "Contact Group";
+        loading.title = `Loading ${req.country.name} Group`;
+        loading.copy = "Filtering the contact database for this saved group.";
+        loading.targetUrl = `${countryPath}?group=${groupId}`;
+      }
+    }
+
     res.render("contacts_loading", {
-      targetUrl: `/${req.country.code}/contacts?view=all`
+      ...loading
     });
   });
 
